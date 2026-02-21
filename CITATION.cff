@@ -1,0 +1,17 @@
+cff-version: 1.2.0
+message: "If you use this software in your research, please cite it as below."
+authors:
+  - family-names: "Riegler"
+    given-names: "Michael A."
+title: "tm-swarm: Collective Learning with Tsetlin Machines"
+version: 1.0.0
+date-released: 2026-02-21
+url: "https://github.com/kelkalot/tm-swarm"
+description: "A Python framework for N-agent collective learning using Tsetlin Machines and synthetic data sharing, supporting zero-shot sensor onboarding and LLM-driven feature extraction."
+keywords:
+  - tsetlin-machine
+  - collective-learning
+  - machine-learning
+  - interpretable-ai
+  - cyber-security
+  - unsw-nb15

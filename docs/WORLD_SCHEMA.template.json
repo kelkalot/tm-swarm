@@ -1,0 +1,35 @@
+{
+    "_comment": "Copy this file and fill in your features. All agents must use the same schema.",
+    "version": 1,
+    "description": "Template world schema",
+    "features": [
+        {
+            "id": 0,
+            "name": "feature_name",
+            "encoder": "boolean",
+            "_comment_encoder": "Options: boolean | thermometer | onehot"
+        },
+        {
+            "id": 1,
+            "name": "continuous_feature",
+            "encoder": "thermometer",
+            "thresholds": [
+                0.25,
+                0.50,
+                0.75
+            ],
+            "_comment_thresholds": "One bit per threshold. Value > threshold = 1."
+        },
+        {
+            "id": 2,
+            "name": "categorical_feature",
+            "encoder": "onehot",
+            "vocab": [
+                "value_a",
+                "value_b",
+                "value_c"
+            ],
+            "_comment_vocab": "One bit per vocabulary item. Exactly one bit will be 1."
+        }
+    ]
+}

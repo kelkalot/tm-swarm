@@ -1,0 +1,646 @@
+{
+  "version": 1,
+  "description": "UNSW-NB15 network flow features (128 boolean bits)",
+  "features": [
+    {
+      "id": 0,
+      "name": "dur_gt_0.001033",
+      "encoder": "boolean"
+    },
+    {
+      "id": 1,
+      "name": "dur_gt_0.003592",
+      "encoder": "boolean"
+    },
+    {
+      "id": 2,
+      "name": "dur_gt_0.02642",
+      "encoder": "boolean"
+    },
+    {
+      "id": 3,
+      "name": "dur_gt_0.3342",
+      "encoder": "boolean"
+    },
+    {
+      "id": 4,
+      "name": "dur_gt_1.107",
+      "encoder": "boolean"
+    },
+    {
+      "id": 5,
+      "name": "dur_gt_1.781",
+      "encoder": "boolean"
+    },
+    {
+      "id": 6,
+      "name": "sbytes_gt_146",
+      "encoder": "boolean"
+    },
+    {
+      "id": 7,
+      "name": "sbytes_gt_424",
+      "encoder": "boolean"
+    },
+    {
+      "id": 8,
+      "name": "sbytes_gt_1684",
+      "encoder": "boolean"
+    },
+    {
+      "id": 9,
+      "name": "sbytes_gt_3728",
+      "encoder": "boolean"
+    },
+    {
+      "id": 10,
+      "name": "sbytes_gt_8928",
+      "encoder": "boolean"
+    },
+    {
+      "id": 11,
+      "name": "sbytes_gt_2.464e+04",
+      "encoder": "boolean"
+    },
+    {
+      "id": 12,
+      "name": "dbytes_gt_178",
+      "encoder": "boolean"
+    },
+    {
+      "id": 13,
+      "name": "dbytes_gt_304",
+      "encoder": "boolean"
+    },
+    {
+      "id": 14,
+      "name": "dbytes_gt_3080",
+      "encoder": "boolean"
+    },
+    {
+      "id": 15,
+      "name": "dbytes_gt_1.992e+04",
+      "encoder": "boolean"
+    },
+    {
+      "id": 16,
+      "name": "dbytes_gt_5.1e+04",
+      "encoder": "boolean"
+    },
+    {
+      "id": 17,
+      "name": "dbytes_gt_8.228e+04",
+      "encoder": "boolean"
+    },
+    {
+      "id": 18,
+      "name": "sttl_gt_31",
+      "encoder": "boolean"
+    },
+    {
+      "id": 19,
+      "name": "sttl_gt_254",
+      "encoder": "boolean"
+    },
+    {
+      "id": 20,
+      "name": "dttl_gt_29",
+      "encoder": "boolean"
+    },
+    {
+      "id": 21,
+      "name": "sload_gt_1.153e+04",
+      "encoder": "boolean"
+    },
+    {
+      "id": 22,
+      "name": "sload_gt_8.078e+04",
+      "encoder": "boolean"
+    },
+    {
+      "id": 23,
+      "name": "sload_gt_5.407e+05",
+      "encoder": "boolean"
+    },
+    {
+      "id": 24,
+      "name": "sload_gt_1.096e+06",
+      "encoder": "boolean"
+    },
+    {
+      "id": 25,
+      "name": "sload_gt_2.364e+06",
+      "encoder": "boolean"
+    },
+    {
+      "id": 26,
+      "name": "sload_gt_1.008e+07",
+      "encoder": "boolean"
+    },
+    {
+      "id": 27,
+      "name": "dload_gt_1.147e+04",
+      "encoder": "boolean"
+    },
+    {
+      "id": 28,
+      "name": "dload_gt_7.632e+04",
+      "encoder": "boolean"
+    },
+    {
+      "id": 29,
+      "name": "dload_gt_6.692e+05",
+      "encoder": "boolean"
+    },
+    {
+      "id": 30,
+      "name": "dload_gt_3.835e+06",
+      "encoder": "boolean"
+    },
+    {
+      "id": 31,
+      "name": "dload_gt_1.115e+07",
+      "encoder": "boolean"
+    },
+    {
+      "id": 32,
+      "name": "dload_gt_1.398e+07",
+      "encoder": "boolean"
+    },
+    {
+      "id": 33,
+      "name": "spkts_gt_2",
+      "encoder": "boolean"
+    },
+    {
+      "id": 34,
+      "name": "spkts_gt_4",
+      "encoder": "boolean"
+    },
+    {
+      "id": 35,
+      "name": "spkts_gt_16",
+      "encoder": "boolean"
+    },
+    {
+      "id": 36,
+      "name": "spkts_gt_48",
+      "encoder": "boolean"
+    },
+    {
+      "id": 37,
+      "name": "spkts_gt_72",
+      "encoder": "boolean"
+    },
+    {
+      "id": 38,
+      "name": "spkts_gt_122",
+      "encoder": "boolean"
+    },
+    {
+      "id": 39,
+      "name": "dpkts_gt_2",
+      "encoder": "boolean"
+    },
+    {
+      "id": 40,
+      "name": "dpkts_gt_4",
+      "encoder": "boolean"
+    },
+    {
+      "id": 41,
+      "name": "dpkts_gt_18",
+      "encoder": "boolean"
+    },
+    {
+      "id": 42,
+      "name": "dpkts_gt_46",
+      "encoder": "boolean"
+    },
+    {
+      "id": 43,
+      "name": "dpkts_gt_74",
+      "encoder": "boolean"
+    },
+    {
+      "id": 44,
+      "name": "dpkts_gt_126",
+      "encoder": "boolean"
+    },
+    {
+      "id": 45,
+      "name": "smeansz_gt_56",
+      "encoder": "boolean"
+    },
+    {
+      "id": 46,
+      "name": "smeansz_gt_62",
+      "encoder": "boolean"
+    },
+    {
+      "id": 47,
+      "name": "smeansz_gt_73",
+      "encoder": "boolean"
+    },
+    {
+      "id": 48,
+      "name": "smeansz_gt_128",
+      "encoder": "boolean"
+    },
+    {
+      "id": 49,
+      "name": "smeansz_gt_178",
+      "encoder": "boolean"
+    },
+    {
+      "id": 50,
+      "name": "smeansz_gt_638",
+      "encoder": "boolean"
+    },
+    {
+      "id": 51,
+      "name": "dmeansz_gt_69",
+      "encoder": "boolean"
+    },
+    {
+      "id": 52,
+      "name": "dmeansz_gt_81",
+      "encoder": "boolean"
+    },
+    {
+      "id": 53,
+      "name": "dmeansz_gt_117",
+      "encoder": "boolean"
+    },
+    {
+      "id": 54,
+      "name": "dmeansz_gt_565",
+      "encoder": "boolean"
+    },
+    {
+      "id": 55,
+      "name": "dmeansz_gt_796",
+      "encoder": "boolean"
+    },
+    {
+      "id": 56,
+      "name": "dmeansz_gt_943",
+      "encoder": "boolean"
+    },
+    {
+      "id": 57,
+      "name": "tcprtt_gt_0",
+      "encoder": "boolean"
+    },
+    {
+      "id": 58,
+      "name": "tcprtt_gt_0.000646",
+      "encoder": "boolean"
+    },
+    {
+      "id": 59,
+      "name": "tcprtt_gt_0.000717",
+      "encoder": "boolean"
+    },
+    {
+      "id": 60,
+      "name": "tcprtt_gt_0.000835",
+      "encoder": "boolean"
+    },
+    {
+      "id": 61,
+      "name": "tcprtt_gt_0.001987",
+      "encoder": "boolean"
+    },
+    {
+      "id": 62,
+      "name": "synack_gt_0",
+      "encoder": "boolean"
+    },
+    {
+      "id": 63,
+      "name": "synack_gt_0.000512",
+      "encoder": "boolean"
+    },
+    {
+      "id": 64,
+      "name": "synack_gt_0.000567",
+      "encoder": "boolean"
+    },
+    {
+      "id": 65,
+      "name": "synack_gt_0.000643",
+      "encoder": "boolean"
+    },
+    {
+      "id": 66,
+      "name": "synack_gt_0.001516",
+      "encoder": "boolean"
+    },
+    {
+      "id": 67,
+      "name": "ackdat_gt_0",
+      "encoder": "boolean"
+    },
+    {
+      "id": 68,
+      "name": "ackdat_gt_0.000127",
+      "encoder": "boolean"
+    },
+    {
+      "id": 69,
+      "name": "ackdat_gt_0.000144",
+      "encoder": "boolean"
+    },
+    {
+      "id": 70,
+      "name": "ackdat_gt_0.000169",
+      "encoder": "boolean"
+    },
+    {
+      "id": 71,
+      "name": "ackdat_gt_0.00064",
+      "encoder": "boolean"
+    },
+    {
+      "id": 72,
+      "name": "sjit_gt_0",
+      "encoder": "boolean"
+    },
+    {
+      "id": 73,
+      "name": "sjit_gt_31.41",
+      "encoder": "boolean"
+    },
+    {
+      "id": 74,
+      "name": "sjit_gt_746.6",
+      "encoder": "boolean"
+    },
+    {
+      "id": 75,
+      "name": "sjit_gt_6104",
+      "encoder": "boolean"
+    },
+    {
+      "id": 76,
+      "name": "sjit_gt_9375",
+      "encoder": "boolean"
+    },
+    {
+      "id": 77,
+      "name": "djit_gt_0",
+      "encoder": "boolean"
+    },
+    {
+      "id": 78,
+      "name": "djit_gt_0.3208",
+      "encoder": "boolean"
+    },
+    {
+      "id": 79,
+      "name": "djit_gt_18.82",
+      "encoder": "boolean"
+    },
+    {
+      "id": 80,
+      "name": "djit_gt_82.04",
+      "encoder": "boolean"
+    },
+    {
+      "id": 81,
+      "name": "djit_gt_2329",
+      "encoder": "boolean"
+    },
+    {
+      "id": 82,
+      "name": "djit_gt_7681",
+      "encoder": "boolean"
+    },
+    {
+      "id": 83,
+      "name": "ct_srv_src_gt_1",
+      "encoder": "boolean"
+    },
+    {
+      "id": 84,
+      "name": "ct_srv_src_gt_2",
+      "encoder": "boolean"
+    },
+    {
+      "id": 85,
+      "name": "ct_srv_src_gt_4",
+      "encoder": "boolean"
+    },
+    {
+      "id": 86,
+      "name": "ct_srv_src_gt_7",
+      "encoder": "boolean"
+    },
+    {
+      "id": 87,
+      "name": "ct_srv_src_gt_11",
+      "encoder": "boolean"
+    },
+    {
+      "id": 88,
+      "name": "ct_srv_src_gt_14",
+      "encoder": "boolean"
+    },
+    {
+      "id": 89,
+      "name": "ct_srv_dst_gt_1",
+      "encoder": "boolean"
+    },
+    {
+      "id": 90,
+      "name": "ct_srv_dst_gt_2",
+      "encoder": "boolean"
+    },
+    {
+      "id": 91,
+      "name": "ct_srv_dst_gt_4",
+      "encoder": "boolean"
+    },
+    {
+      "id": 92,
+      "name": "ct_srv_dst_gt_7",
+      "encoder": "boolean"
+    },
+    {
+      "id": 93,
+      "name": "ct_srv_dst_gt_10",
+      "encoder": "boolean"
+    },
+    {
+      "id": 94,
+      "name": "ct_srv_dst_gt_13",
+      "encoder": "boolean"
+    },
+    {
+      "id": 95,
+      "name": "ct_dst_ltm_gt_1",
+      "encoder": "boolean"
+    },
+    {
+      "id": 96,
+      "name": "ct_dst_ltm_gt_2",
+      "encoder": "boolean"
+    },
+    {
+      "id": 97,
+      "name": "ct_dst_ltm_gt_3",
+      "encoder": "boolean"
+    },
+    {
+      "id": 98,
+      "name": "ct_dst_ltm_gt_5",
+      "encoder": "boolean"
+    },
+    {
+      "id": 99,
+      "name": "ct_dst_ltm_gt_7",
+      "encoder": "boolean"
+    },
+    {
+      "id": 100,
+      "name": "ct_dst_ltm_gt_8",
+      "encoder": "boolean"
+    },
+    {
+      "id": 101,
+      "name": "ct_src_ltm_gt_1",
+      "encoder": "boolean"
+    },
+    {
+      "id": 102,
+      "name": "ct_src_ltm_gt_2",
+      "encoder": "boolean"
+    },
+    {
+      "id": 103,
+      "name": "ct_src_ltm_gt_3",
+      "encoder": "boolean"
+    },
+    {
+      "id": 104,
+      "name": "ct_src_ltm_gt_5",
+      "encoder": "boolean"
+    },
+    {
+      "id": 105,
+      "name": "ct_src_ltm_gt_8",
+      "encoder": "boolean"
+    },
+    {
+      "id": 106,
+      "name": "ct_src_ltm_gt_10",
+      "encoder": "boolean"
+    },
+    {
+      "id": 107,
+      "name": "protocol_is_tcp",
+      "encoder": "boolean"
+    },
+    {
+      "id": 108,
+      "name": "protocol_is_udp",
+      "encoder": "boolean"
+    },
+    {
+      "id": 109,
+      "name": "protocol_is_arp",
+      "encoder": "boolean"
+    },
+    {
+      "id": 110,
+      "name": "protocol_is_ospf",
+      "encoder": "boolean"
+    },
+    {
+      "id": 111,
+      "name": "protocol_is_icmp",
+      "encoder": "boolean"
+    },
+    {
+      "id": 112,
+      "name": "protocol_is_other",
+      "encoder": "boolean"
+    },
+    {
+      "id": 113,
+      "name": "state_is_FIN",
+      "encoder": "boolean"
+    },
+    {
+      "id": 114,
+      "name": "state_is_CON",
+      "encoder": "boolean"
+    },
+    {
+      "id": 115,
+      "name": "state_is_INT",
+      "encoder": "boolean"
+    },
+    {
+      "id": 116,
+      "name": "state_is_REQ",
+      "encoder": "boolean"
+    },
+    {
+      "id": 117,
+      "name": "state_is_RST",
+      "encoder": "boolean"
+    },
+    {
+      "id": 118,
+      "name": "state_is_ACC",
+      "encoder": "boolean"
+    },
+    {
+      "id": 119,
+      "name": "state_is_other",
+      "encoder": "boolean"
+    },
+    {
+      "id": 120,
+      "name": "service_is_-",
+      "encoder": "boolean"
+    },
+    {
+      "id": 121,
+      "name": "service_is_dns",
+      "encoder": "boolean"
+    },
+    {
+      "id": 122,
+      "name": "service_is_http",
+      "encoder": "boolean"
+    },
+    {
+      "id": 123,
+      "name": "service_is_ftp",
+      "encoder": "boolean"
+    },
+    {
+      "id": 124,
+      "name": "service_is_ftp-data",
+      "encoder": "boolean"
+    },
+    {
+      "id": 125,
+      "name": "service_is_smtp",
+      "encoder": "boolean"
+    },
+    {
+      "id": 126,
+      "name": "service_is_ssh",
+      "encoder": "boolean"
+    },
+    {
+      "id": 127,
+      "name": "service_is_other",
+      "encoder": "boolean"
+    }
+  ]
+}
