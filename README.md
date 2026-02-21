@@ -91,6 +91,8 @@ tm-swarm/
 
 ## UNSW-NB15 Intrusion Detection Experiment
 
+*For exact CLI commands, random seeds, and reproduction steps for the numbers below, see [RESULTS.md](RESULTS.md) and the experiment-specific [readme_unsw.md](experiments/unsw_nb15/readme_unsw.md).*
+
 A challenging real-world test: 3 agents, each trained on different attack types from the [UNSW-NB15](https://research.unsw.edu.au/projects/unsw-nb15-dataset) network flow dataset (2M flows, 9 attack types).
 
 **The question**: Can an agent detect attack types it has **never seen** — purely by absorbing knowledge from peers?
