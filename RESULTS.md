@@ -102,5 +102,5 @@ python experiments/unsw_nb15/visualize_all.py
 ```
 
 The unified charts will be output to:
-- `experiments/unsw_nb15/plots/improvement_bars.png` (Contains the plotted Oracle Baseline at 0.9799)
+- `experiments/unsw_nb15/plots/improvement_bars.png` (Contains the plotted Oracle Baseline at 0.9804)
 - `experiments/unsw_nb15/plots_summary/03_overall_summary.png`
