@@ -156,11 +156,11 @@ def generate_synthetic(tm, n_bits, n_samples, rng, X_train=None, flip_rate=0.15)
 
 def main():
     print(f"\n{BOLD}{'='*60}")
-    print(f"  Zero-Shot Onboarding Experiment on UNSW-NB15")
+    print("  Zero-Shot Onboarding Experiment on UNSW-NB15")
     print(f"{'='*60}{RESET}")
-    print(f"  Agent A: DoS, Fuzzers, Exploits")
-    print(f"  Agent B: Backdoor, Shellcode, Reconnaissance")
-    print(f"  Agent D: starts BLANK (0 real training data)")
+    print("  Agent A: DoS, Fuzzers, Exploits")
+    print("  Agent B: Backdoor, Shellcode, Reconnaissance")
+    print("  Agent D: starts BLANK (0 real training data)")
     print(f"  TM Clauses: {TM_CLAUSES} | Train Epochs: {TRAIN_EPOCHS} | Absorb epochs: {ABSORB_EPOCHS}\n")
 
     # 1. Load Data

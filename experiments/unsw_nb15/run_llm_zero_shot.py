@@ -11,7 +11,6 @@ This combines the LLM unstructured capability with the zero-shot onboarding capa
 import os
 import sys
 import json
-import time
 import subprocess
 import argparse
 import numpy as np
@@ -282,11 +281,11 @@ def main():
         json.dump(schema, f, indent=2)
 
     print(f"\n{BOLD}{'='*60}")
-    print(f"  LLM-Driven Zero-Shot Onboarding on UNSW-NB15")
+    print("  LLM-Driven Zero-Shot Onboarding on UNSW-NB15")
     print(f"{'='*60}{RESET}")
-    print(f"  Agent A: DoS, Fuzzers, Exploits")
-    print(f"  Agent B: Backdoor, Shellcode, Reconnaissance")
-    print(f"  Agent D: starts BLANK (0 real training data)")
+    print("  Agent A: DoS, Fuzzers, Exploits")
+    print("  Agent B: Backdoor, Shellcode, Reconnaissance")
+    print("  Agent D: starts BLANK (0 real training data)")
     print(f"  Model: {args.model}")
     print(f"  Workspace: {workspace}\n")
 

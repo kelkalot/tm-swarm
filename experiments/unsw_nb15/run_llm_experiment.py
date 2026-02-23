@@ -361,7 +361,7 @@ def main():
         json.dump(schema, f, indent=2)
 
     print(f"\n{BOLD}{'='*60}")
-    print(f"  LLM-Driven Intrusion Detection on UNSW-NB15")
+    print("  LLM-Driven Intrusion Detection on UNSW-NB15")
     print(f"{'='*60}{RESET}")
     print(f"  Model: {args.model}")
     print(f"  Agents: {len(AGENT_ATTACKS)}")
@@ -392,7 +392,7 @@ def main():
 
     # ── Phase 1: LLM extracts features and trains TMs ────────────────────
     print(f"\n{BOLD}{'='*60}")
-    print(f"  PHASE 1: LLM FEATURE EXTRACTION + TRAINING")
+    print("  PHASE 1: LLM FEATURE EXTRACTION + TRAINING")
     print(f"{'='*60}{RESET}\n")
 
     t0_total = time.time()
@@ -420,7 +420,7 @@ def main():
 
     # ── Phase 2: Pre-share evaluation ────────────────────────────────────
     print(f"\n{BOLD}{'='*60}")
-    print(f"  PHASE 2: PRE-SHARE EVALUATION")
+    print("  PHASE 2: PRE-SHARE EVALUATION")
     print(f"{'='*60}{RESET}\n")
 
     pre_accuracies = {}
@@ -430,7 +430,7 @@ def main():
 
     # ── Phase 3: Knowledge sharing ───────────────────────────────────────
     print(f"\n{BOLD}{'='*60}")
-    print(f"  PHASE 3: KNOWLEDGE SHARING")
+    print("  PHASE 3: KNOWLEDGE SHARING")
     print(f"{'='*60}{RESET}\n")
 
     # Generate packets
@@ -448,7 +448,7 @@ def main():
 
     # ── Phase 4: Post-share evaluation ───────────────────────────────────
     print(f"\n{BOLD}{'='*60}")
-    print(f"  PHASE 4: POST-SHARE EVALUATION")
+    print("  PHASE 4: POST-SHARE EVALUATION")
     print(f"{'='*60}{RESET}\n")
 
     post_accuracies = {}
@@ -460,7 +460,7 @@ def main():
     dt_total = time.time() - t0_total
 
     print(f"\n{BOLD}{'='*60}")
-    print(f"  SUMMARY")
+    print("  SUMMARY")
     print(f"{'='*60}{RESET}\n")
 
     for agent_id in agents:

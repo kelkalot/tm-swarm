@@ -159,7 +159,7 @@ def generate_synthetic(tm, n_bits, n_samples, rng, X_train=None, flip_rate=0.15)
 
 def main():
     print(f"\n{BOLD}{'='*60}")
-    print(f"  UNSW-NB15 Collective Intrusion Detection Experiment")
+    print("  UNSW-NB15 Collective Intrusion Detection Experiment")
     print(f"{'='*60}{RESET}\n")
 
     # Load test data
@@ -174,7 +174,7 @@ def main():
 
     # ── Phase 1: Train each agent on its local data ──────────────────────
     print(f"\n{BOLD}{'='*60}")
-    print(f"  PHASE 1: LOCAL TRAINING")
+    print("  PHASE 1: LOCAL TRAINING")
     print(f"{'='*60}{RESET}\n")
 
     agents = {}
@@ -203,7 +203,7 @@ def main():
 
     # ── Phase 2: Pre-share evaluation ────────────────────────────────────
     print(f"\n{BOLD}{'='*60}")
-    print(f"  PHASE 2: PRE-SHARE EVALUATION")
+    print("  PHASE 2: PRE-SHARE EVALUATION")
     print(f"{'='*60}{RESET}")
 
     pre_results = {}
@@ -217,7 +217,7 @@ def main():
 
     # ── Phase 3: Knowledge sharing ───────────────────────────────────────
     print(f"\n{BOLD}{'='*60}")
-    print(f"  PHASE 3: KNOWLEDGE SHARING")
+    print("  PHASE 3: KNOWLEDGE SHARING")
     print(f"{'='*60}{RESET}\n")
 
     # Each agent generates class-balanced synthetic data via perturbation
@@ -254,7 +254,7 @@ def main():
 
     # ── Phase 4: Post-share evaluation ───────────────────────────────────
     print(f"\n{BOLD}{'='*60}")
-    print(f"  PHASE 4: POST-SHARE EVALUATION")
+    print("  PHASE 4: POST-SHARE EVALUATION")
     print(f"{'='*60}{RESET}")
 
     post_results = {}
@@ -268,7 +268,7 @@ def main():
 
     # ── Summary ──────────────────────────────────────────────────────────
     print(f"\n{BOLD}{'='*60}")
-    print(f"  SUMMARY: IMPROVEMENT FROM SHARING")
+    print("  SUMMARY: IMPROVEMENT FROM SHARING")
     print(f"{'='*60}{RESET}\n")
 
     for agent_id in AGENT_IDS:
