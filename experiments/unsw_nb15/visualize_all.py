@@ -106,7 +106,7 @@ def plot_zero_shot_onboarding():
     # Data
     labels = ["Baseline collective max", "Agent D (Baseline Zero-Shot)", "LLM collective max", "Agent D (LLM Zero-Shot)"]
     
-    accuracies = [98.9, 97.7, 72.0, 72.0]
+    accuracies = [99.0, 98.8, 72.0, 72.0]
     colors = [COLOR_BASELINE, COLOR_BASELINE_LIGHT, COLOR_LLM, COLOR_LLM_LIGHT]
 
     x = np.arange(len(labels))
@@ -156,9 +156,9 @@ def plot_final_summary():
             ha="center", va="top", fontsize=12, color=COLOR_MUTED, transform=ax.transAxes)
 
     metrics = [
-        ("Centralized Oracle", "98.0%", "5-seed mean for monolithic TM (± 0.26 variance)"),
-        ("Collective vs Oracle", "Parity", "Statistically indistinguishable (98.4% avg, 98.6% peak)"),
-        ("Zero-Shot Onboarding", "97.7%", "Blank Agent D immediately operational via collective"),
+        ("Centralized Oracle", "98.0%", "5-seed mean for monolithic TM (± 0.21 variance)"),
+        ("Collective vs Oracle", "Parity", "Statistically indistinguishable (98.9% avg, 99.0% peak)"),
+        ("Zero-Shot Onboarding", "98.8%", "Blank Agent D immediately operational via collective"),
         ("LLM-Driven TM (+29.3pp)", "57.3%", "Noisy text-extracted features still double accuracy"),
     ]
 

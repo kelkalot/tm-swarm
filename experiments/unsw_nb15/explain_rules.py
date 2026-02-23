@@ -36,8 +36,7 @@ def load_schema():
 
 def load_data_for_attack(target_attack):
     """Load train data and isolate a specific attack type vs normal."""
-    # We load Agent C's data because C sees "Generic" attacks in our baseline setup
-    # Wait, in the README: C sees "worms, analysis, generic". Let's load C's data.
+    # We need to load test data to find indices of specific attacks.
     # To be precise about "Generic", let's use the test set as our training set
     # for this explanatory script so we can filter exactly "generic" vs "normal".
     

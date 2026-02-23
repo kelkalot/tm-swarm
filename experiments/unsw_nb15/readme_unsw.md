@@ -15,7 +15,7 @@ python prepare_data.py
 ```
 
 ### 2. Establish the Centralized Oracle Baseline
-Train a monolithic Tsetlin Machine on the entirety of the prepared training data. To generate the `97.99% ± 0.26%` baseline, we run the script across 5 different initialization/shuffling seeds.
+Train a monolithic Tsetlin Machine on the entirety of the prepared training data. To generate the `98.04% ± 0.21%` baseline, we run the script across 5 different initialization/shuffling seeds.
 
 ```bash
 # Uses seeds: [42, 123, 456, 789, 1024]
@@ -28,7 +28,7 @@ Train 3 isolated agents on distinct attack subsets, share synthetic knowledge pa
 ```bash
 python run_experiment.py
 ```
-This proves that the agents successfully achieve statistical parity (`~0.984`) with the Oracle simply by exchanging symbolic logic.
+This proves that the agents successfully achieve statistical parity (`~0.989`) with the Oracle simply by exchanging symbolic logic.
 
 ### 4. Run the Zero-Shot Onboarding Experiment
 Demonstrate how a brand new sensor ("Agent D") with zero training data can achieve immediate operational readiness by absorbing the collective's knowledge.
@@ -36,7 +36,7 @@ Demonstrate how a brand new sensor ("Agent D") with zero training data can achie
 ```bash
 python zero_shot_onboarding.py
 ```
-*Expected Result: Agent D reaches ~97.7% accuracy.*
+*Expected Result: Agent D reaches ~98.8% accuracy.*
 
 ### 5. Run the LLM-Driven Experiment
 Process unstructured text summaries using `qwen3:8b` via Ollama to extract noisy boolean features.

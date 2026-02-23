@@ -11,6 +11,7 @@ import json
 import numpy as np
 import pandas as pd
 from collections import OrderedDict
+from sklearn.model_selection import train_test_split
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(SCRIPT_DIR, "data")
@@ -181,23 +182,39 @@ def main():
         attack_dfs[attack] = adf
         print(f"  {attack}: {len(adf)} samples")
 
+    print("\nEnsuring strict train/test data separation...")
+    # First, perform a rigid 80/20 train/test split on every category to prevent any overlap
+    train_normal, test_normal_pool = train_test_split(normal_df, test_size=0.2, random_state=42)
+    
+    train_attacks = {}
+    test_attacks_pool = {}
+    for attack, adf in attack_dfs.items():
+        if len(adf) < 5:
+            # Handle extremely rare attacks (e.g. if the dataset were tinier)
+            train_attacks[attack] = adf
+            test_attacks_pool[attack] = adf.copy() # Cannot avoid if too small, but UNSW is large enough
+        else:
+            trn, tst = train_test_split(adf, test_size=0.2, random_state=42)
+            train_attacks[attack] = trn
+            test_attacks_pool[attack] = tst
+
     # ── Build per-agent training data ─────────────────────────────────────
     print("\nBuilding per-agent training data...")
     rng = np.random.RandomState(42)
 
     for agent_id, attacks in AGENT_ATTACKS.items():
-        # Sample normal traffic
-        n_normal = min(NORMAL_SAMPLES_PER_AGENT, len(normal_df))
-        agent_normal = normal_df.sample(n=n_normal, random_state=rng)
+        # Sample normal traffic from the training pool
+        n_normal = min(NORMAL_SAMPLES_PER_AGENT, len(train_normal))
+        agent_normal = train_normal.sample(n=n_normal, random_state=rng)
 
-        # Sample attacks
-        agent_attacks = []
+        # Sample attacks from the training pool
+        agent_attacks_list = []
         for attack in attacks:
-            adf = attack_dfs[attack]
-            n = min(ATTACK_SAMPLES_PER_AGENT, len(adf))
-            agent_attacks.append(adf.sample(n=n, random_state=rng))
+            adf_train = train_attacks[attack]
+            n = min(ATTACK_SAMPLES_PER_AGENT, len(adf_train))
+            agent_attacks_list.append(adf_train.sample(n=n, random_state=rng, replace=True))
 
-        agent_df = pd.concat([agent_normal] + agent_attacks, ignore_index=True)
+        agent_df = pd.concat([agent_normal] + agent_attacks_list, ignore_index=True)
         agent_df = agent_df.sample(frac=1, random_state=rng).reset_index(drop=True)
 
         # Binarize
@@ -215,11 +232,12 @@ def main():
 
     # ── Build test data (ALL attack types) ────────────────────────────────
     print("\nBuilding test data (all attack types)...")
-    test_normal = normal_df.sample(n=min(TEST_NORMAL, len(normal_df)), random_state=rng)
+    test_normal = test_normal_pool.sample(n=min(TEST_NORMAL, len(test_normal_pool)), random_state=rng)
+    
     test_attack_list = []
-    for attack, adf in attack_dfs.items():
-        n = min(TEST_PER_ATTACK, len(adf))
-        test_attack_list.append(adf.sample(n=n, random_state=rng))
+    for attack, adf_test in test_attacks_pool.items():
+        n = min(TEST_PER_ATTACK, len(adf_test))
+        test_attack_list.append(adf_test.sample(n=n, random_state=rng, replace=True))
 
     test_df = pd.concat([test_normal] + test_attack_list, ignore_index=True)
     test_df = test_df.sample(frac=1, random_state=rng).reset_index(drop=True)

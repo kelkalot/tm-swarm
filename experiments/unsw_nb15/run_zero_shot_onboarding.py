@@ -156,7 +156,7 @@ def generate_synthetic(tm, n_bits, n_samples, rng, X_train=None, flip_rate=0.15)
 
 def main():
     print(f"\n{BOLD}{'='*60}")
-    print("  Zero-Shot Onboarding Experiment on UNSW-NB15")
+    print(f"  Zero-Shot Onboarding Experiment on UNSW-NB15")
     print(f"{'='*60}{RESET}")
     print("  Agent A: DoS, Fuzzers, Exploits")
     print("  Agent B: Backdoor, Shellcode, Reconnaissance")

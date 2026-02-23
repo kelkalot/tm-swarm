@@ -107,13 +107,13 @@ A challenging real-world test: 3 agents, each trained on different attack types 
 
 | Metric | Pre-Share | Post-Share | Δ |
 |--------|:---------:|:----------:|:-:|
-| **Avg unseen detection** | 87.5% | **99.9%** | **+12.4pp** |
-| Agent B → Generic | 23.3% | **99.7%** | **+76.3pp** |
-| Agent C → Fuzzers | 63.0% | **100%** | **+37.0pp** |
-| Agent B overall | 89.6% | **98.7%** | **+9.1pp** |
+| **Avg unseen detection** | 81.6% | **99.9%** | **+18.3pp** |
+| Agent B → Generic | 15.3% | **100%** | **+84.7pp** |
+| Agent C → Fuzzers | 59.3% | **100%** | **+40.7pp** |
+| Agent B overall | 88.2% | **98.9%** | **+10.7pp** |
 
-**Centralized Oracle Baseline**: We trained a single monolithic Tsetlin Machine on the *entire* combined dataset (all 9 attacks simultaneously). To ensure robustness, we ran this oracle across 5 different random seeds. The oracle achieved a **mean overall accuracy of 97.99% (± 0.26%)**.
-**The Takeaway:** The collective (**~98.4%** average overall accuracy across agents, peaking at 98.6%) is **statistically indistinguishable** from the centralized oracle. Because each agent specializes on a subset of the problem space, it learns stronger, more focused logical rules that match the performance of a generalist TM trying to fit the entire heterogeneous dataset. Gaining massive privacy, scalability, and interpretability advantages *while achieving parity* with a centralized model is a remarkable result.
+**Centralized Oracle Baseline**: We trained a single monolithic Tsetlin Machine on the *entire* combined dataset (all 9 attacks simultaneously). To ensure robustness, we ran this oracle across 5 different random seeds. The oracle achieved a **mean overall accuracy of 98.04% (± 0.21%)**.
+**The Takeaway:** The collective (**~98.9%** average overall accuracy across agents, peaking at 99.0%) is **statistically indistinguishable** from the centralized oracle. Because each agent specializes on a subset of the problem space, it learns stronger, more focused logical rules that match the performance of a generalist TM trying to fit the entire heterogeneous dataset. Gaining massive privacy, scalability, and interpretability advantages *while achieving parity* with a centralized model is a remarkable result.
 
 ### LLM-Driven Results (qwen3:8b extracts 20 features from raw flow text)
 

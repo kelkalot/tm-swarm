@@ -122,9 +122,9 @@ def plot_improvement_bars():
         offset = (i - 1) * bar_width
 
         ax.bar(x + offset - bar_width/4, pre_vals, bar_width/2,
-                          color=colors_pre[i], alpha=0.4, label=f"Agent {agent_id} (pre)" if i == 0 else "")
+               color=colors_pre[i], alpha=0.4, label=f"Agent {agent_id} (pre)" if i == 0 else "")
         ax.bar(x + offset + bar_width/4, post_vals, bar_width/2,
-                           color=colors_pre[i], alpha=1.0, label=f"Agent {agent_id} (post)" if i == 0 else "")
+               color=colors_pre[i], alpha=1.0, label=f"Agent {agent_id} (post)" if i == 0 else "")
 
         # Highlight unseen attacks with markers
         for j, atk in enumerate(attacks):

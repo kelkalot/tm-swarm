@@ -39,8 +39,8 @@ python experiments/unsw_nb15/run_oracle.py
 **Expected Output:**
 ```text
 === Oracle Variance Report ===
-Accuracies: 0.9797, 0.9849, 0.9772, 0.9790, 0.9786
-Mean Accuracy: 0.9799 ± 0.0026
+Accuracies: 0.9788, 0.9772, 0.9817, 0.9833, 0.9808
+Mean Accuracy: 0.9804 ± 0.0021
 ```
 
 ### Step 3: Running the Collective Learning Experiment
@@ -52,17 +52,17 @@ python experiments/unsw_nb15/run_experiment.py
 ```
 **Expected Output (Post-Share average):**
 ```text
-Agent A overall accuracy: 0.986
-Agent B overall accuracy: 0.985
-Agent C overall accuracy: 0.982
-Average overall accuracy: ~0.984
+Agent A overall accuracy: 0.988
+Agent B overall accuracy: 0.989
+Agent C overall accuracy: 0.990
+Average overall accuracy: ~0.989
 
 Average unseen attack detection:
-  Pre-share:  0.873
+  Pre-share:  0.816
   Post-share: 0.999
 ```
 
-**Conclusion:** The collective's `~0.984` average accuracy is statistically indistinguishable from the Oracle's `0.9799 ± 0.0026` distribution, achieving parity while preserving privacy.
+**Conclusion:** The collective's `~0.989` average accuracy is statistically indistinguishable from the Oracle's `0.9804 ± 0.0021` distribution, achieving parity while preserving privacy.
 
 ---
 

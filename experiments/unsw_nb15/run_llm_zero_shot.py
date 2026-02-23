@@ -281,7 +281,7 @@ def main():
         json.dump(schema, f, indent=2)
 
     print(f"\n{BOLD}{'='*60}")
-    print("  LLM-Driven Zero-Shot Onboarding on UNSW-NB15")
+    print(f"  LLM-Driven Zero-Shot Onboarding on UNSW-NB15")
     print(f"{'='*60}{RESET}")
     print("  Agent A: DoS, Fuzzers, Exploits")
     print("  Agent B: Backdoor, Shellcode, Reconnaissance")
