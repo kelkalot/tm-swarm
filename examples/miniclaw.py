@@ -27,8 +27,6 @@ import sys
 import tempfile
 import threading
 from collections import defaultdict
-from pathlib import Path
-
 import numpy as np
 
 try:
@@ -229,7 +227,7 @@ def main():
     skill_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "skill")
 
     print(f"\n{BOLD}╔══════════════════════════════════════════════════╗")
-    print(f"║  MiniClaw — LLM-Driven TM Collective Learning    ║")
+    print("║  MiniClaw — LLM-Driven TM Collective Learning    ║")
     print(f"╚══════════════════════════════════════════════════╝{RESET}")
     print(f"  Model:     {args.model}")
     print(f"  Agents:    {args.n_agents}")
@@ -338,12 +336,12 @@ You MUST call tools. Do NOT just describe steps. Execute them NOW."""
         # ── Sharing ───────────────────────────────────────────────────────
         if round_i == args.share_round:
             print(f"\n{BOLD}{'='*60}")
-            print(f"  SHARING ROUND")
+            print("  SHARING ROUND")
             print(f"{'='*60}{RESET}\n")
 
             # Pre-share: LLM evaluates each agent's current accuracy
             for agent in agents:
-                agent.log(f"📊 Pre-share evaluation")
+                agent.log("📊 Pre-share evaluation")
                 eval_msg = (
                     f"Evaluate your current accuracy before sharing. Run:\n"
                     f"python {skill_dir}/tm_evaluate.py --workspace {workspace} "
@@ -357,7 +355,7 @@ You MUST call tools. Do NOT just describe steps. Execute them NOW."""
             # This is what OpenClaw does behind the scenes — opaque transport
             packets = {}  # agent_id -> packet file path
             for agent in agents:
-                agent.log(f"📤 Generating knowledge packet...")
+                agent.log("📤 Generating knowledge packet...")
                 share_cmd = (
                     f"python {skill_dir}/tm_share.py "
                     f"--workspace {workspace} --agent {agent.agent_id} --n 500"
@@ -407,7 +405,7 @@ You MUST call tools. Do NOT just describe steps. Execute them NOW."""
 
     # ── Final evaluation ──────────────────────────────────────────────────
     print(f"\n{BOLD}{'='*60}")
-    print(f"  FINAL EVALUATION")
+    print("  FINAL EVALUATION")
     print(f"{'='*60}{RESET}\n")
 
     for agent in agents:

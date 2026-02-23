@@ -38,15 +38,6 @@ def load_data_for_attack(target_attack):
     """Load train data and isolate a specific attack type vs normal."""
     # We load Agent C's data because C sees "Generic" attacks in our baseline setup
     # Wait, in the README: C sees "worms, analysis, generic". Let's load C's data.
-    path = os.path.join(DATA_DIR, f"agent_C.json")
-    with open(path) as f:
-        d = json.load(f)
-    
-    X_all = np.array(d["X"], dtype=np.int32)
-    y_all = np.array(d["y"], dtype=np.int32)  # 0=normal, 1=attack
-    
-    # We need to load test data to find indices of specific attacks,
-    # or just train on agent C's data where y=1 means one of C's attacks.
     # To be precise about "Generic", let's use the test set as our training set
     # for this explanatory script so we can filter exactly "generic" vs "normal".
     

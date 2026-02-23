@@ -148,7 +148,7 @@ def main():
 
     # Normalize attack labels
     df["attack_label"] = df["attack_label"].str.lower().str.strip()
-    print(f"\nAttack distribution:")
+    print("\nAttack distribution:")
     print(df["attack_label"].value_counts().to_string())
 
     # Fill NaNs in numeric features

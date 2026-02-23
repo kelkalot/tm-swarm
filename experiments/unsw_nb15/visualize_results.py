@@ -8,12 +8,10 @@ Run AFTER run_experiment.py — reads saved results and generates:
   3. Delta chart: unseen attack detection improvement
 """
 import os
-import json
 import numpy as np
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-import matplotlib.colors as mcolors
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 OUTPUT_DIR = os.path.join(SCRIPT_DIR, "plots")
@@ -123,9 +121,9 @@ def plot_improvement_bars():
 
         offset = (i - 1) * bar_width
 
-        bars_pre = ax.bar(x + offset - bar_width/4, pre_vals, bar_width/2,
+        ax.bar(x + offset - bar_width/4, pre_vals, bar_width/2,
                           color=colors_pre[i], alpha=0.4, label=f"Agent {agent_id} (pre)" if i == 0 else "")
-        bars_post = ax.bar(x + offset + bar_width/4, post_vals, bar_width/2,
+        ax.bar(x + offset + bar_width/4, post_vals, bar_width/2,
                            color=colors_pre[i], alpha=1.0, label=f"Agent {agent_id} (post)" if i == 0 else "")
 
         # Highlight unseen attacks with markers
