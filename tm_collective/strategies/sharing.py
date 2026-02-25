@@ -45,20 +45,20 @@ class SyntheticDataStrategy(SharingStrategy):
     Generate synthetic data from a trained TM and share with peers.
 
     Generation modes (controls how synthetic inputs are created):
-        "perturb"   — perturb real training data with bit flips (RECOMMENDED).
+        "perturb"   - perturb real training data with bit flips (RECOMMENDED).
                       Better cross-environment generalization than random inputs.
                       Requires training data in tm_node.X_buffer or X_own_buffer.
-        "random"    — pure random binary inputs (original behavior, fallback).
+        "random"    - pure random binary inputs (original behavior, fallback).
 
     Perturbation rate modes (controls flip probability):
-        "graduated" — sample flip_rate uniformly from [flip_rate_min, flip_rate_max]
+        "graduated" - sample flip_rate uniformly from [flip_rate_min, flip_rate_max]
                       each iteration. Mixes close-to-real and exploratory samples.
                       Best cross-environment performance. (RECOMMENDED)
-        "fixed"     — constant flip_rate = flip_rate_min throughout.
+        "fixed"     - constant flip_rate = flip_rate_min throughout.
 
     Absorption modes (controls how receiver integrates peer knowledge):
-        "full"      — absorb all peer samples (attacks + normals). Best within-env.
-        "hybrid"    — absorb peer attack samples (y=1) only; generate local normals
+        "full"      - absorb all peer samples (attacks + normals). Best within-env.
+        "hybrid"    - absorb peer attack samples (y=1) only; generate local normals
                       from receiver's own TM using X_own_buffer. Best stability
                       (lowest variance across seeds).
 

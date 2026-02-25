@@ -23,6 +23,7 @@ import numpy as np
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
 
 from pyTsetlinMachine.tm import MultiClassTsetlinMachine
+from tm_collective.strategies.sharing import SyntheticDataStrategy
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(SCRIPT_DIR, "data", "prepared")
@@ -109,52 +110,26 @@ def print_eval(agent_id, overall, seen, unseen, label=""):
             print(f"      {color}{k:20s} {bar} {v:.3f}{RESET}")
 
 
-def generate_synthetic(tm, n_bits, n_samples, rng, X_train=None, flip_rate=0.15):
-    """Generate class-balanced synthetic data via perturbation + rejection sampling.
+class StandaloneAgent:
+    """Wrapper to make standalone experiment code compatible with SyntheticDataStrategy."""
+    def __init__(self, tm, X_train, y_train, schema_mock, agent_id):
+        self.tm = tm
+        self.X_buffer = [X_train]
+        self.y_buffer = [y_train]
+        self.X_own_buffer = [X_train]
+        self.y_own_buffer = [y_train]
+        self.schema = schema_mock
+        self.agent_id = agent_id
+        self.round_i = 1
+        self.last_accuracy = 0.0
+        self._fitted = True
+        self.n_observations = len(X_train)
 
-    Instead of random binary vectors (which are too far from real data distribution),
-    we perturb actual training data with small noise. Then rejection-sample to
-    collect balanced class-0 and class-1 samples.
-    """
-    target_per_class = n_samples // 2
-    class_0_X, class_1_X = [], []
-    attempts = 0
-    max_attempts = 50  # safety limit
-
-    while (len(class_0_X) < target_per_class or len(class_1_X) < target_per_class) \
-            and attempts < max_attempts:
-        attempts += 1
-
-        if X_train is not None and len(X_train) > 0:
-            # Perturb real training data
-            indices = rng.randint(0, len(X_train), size=n_samples)
-            X_batch = X_train[indices].copy()
-            # Flip ~flip_rate of bits randomly
-            flip_mask = rng.random(X_batch.shape) < flip_rate
-            X_batch = np.where(flip_mask, 1 - X_batch, X_batch).astype(np.int32)
-        else:
-            X_batch = rng.randint(0, 2, size=(n_samples, n_bits)).astype(np.int32)
-
-        y_batch = tm.predict(X_batch)
-
-        # Collect by class
-        for cls, collector in [(0, class_0_X), (1, class_1_X)]:
-            mask = y_batch == cls
-            needed = target_per_class - len(collector)
-            if needed > 0 and mask.sum() > 0:
-                collector.append(X_batch[mask][:needed])
-
-    # Build balanced dataset
-    X_0 = np.vstack(class_0_X)[:target_per_class] if class_0_X else np.empty((0, n_bits), dtype=np.int32)
-    X_1 = np.vstack(class_1_X)[:target_per_class] if class_1_X else np.empty((0, n_bits), dtype=np.int32)
-
-    X_syn = np.vstack([X_0, X_1]) if len(X_0) > 0 and len(X_1) > 0 else \
-            X_0 if len(X_1) == 0 else X_1
-    y_syn = np.array([0] * len(X_0) + [1] * len(X_1), dtype=np.int32)
-
-    # Shuffle
-    perm = rng.permutation(len(X_syn))
-    return X_syn[perm], y_syn[perm]
+    def _reset_tm(self):
+        """Recreate the TM to clear its state before retraining."""
+        self.tm = MultiClassTsetlinMachine(
+            TM_CLAUSES, TM_T, TM_S, number_of_state_bits=8
+        )
 
 
 def main():
@@ -198,8 +173,8 @@ def main():
         dt = time.time() - t0
         print(f"    Trained {TRAIN_EPOCHS} epochs in {dt:.1f}s")
 
-        agents[agent_id] = tm
-        agent_X_train[agent_id] = X_train
+        wrapper = StandaloneAgent(tm, X_train, y_train, type("MockSchema", (), {"n_binary": n_bits}), agent_id)
+        agents[agent_id] = wrapper
 
     # ── Phase 2: Pre-share evaluation ────────────────────────────────────
     print(f"\n{BOLD}{'='*60}")
@@ -209,10 +184,11 @@ def main():
     pre_results = {}
     for agent_id in AGENT_IDS:
         overall, seen, unseen = evaluate_agent(
-            agents[agent_id], X_test, y_test, labels,
+            agents[agent_id].tm, X_test, y_test, labels,
             agent_id, agent_attacks[agent_id]
         )
         pre_results[agent_id] = (overall, seen, unseen)
+        agents[agent_id].last_accuracy = overall
         print_eval(agent_id, overall, seen, unseen, "(pre-share)")
 
     # ── Phase 3: Knowledge sharing ───────────────────────────────────────
@@ -220,37 +196,30 @@ def main():
     print("  PHASE 3: KNOWLEDGE SHARING")
     print(f"{'='*60}{RESET}\n")
 
-    # Each agent generates class-balanced synthetic data via perturbation
+    strategy = SyntheticDataStrategy(
+        n_synthetic=N_SYNTHETIC, 
+        retrain_epochs=ABSORB_EPOCHS,
+        mode="perturb",
+        rate_mode="graduated",
+    )
+
     packets = {}
     for agent_id in AGENT_IDS:
-        X_syn, y_syn = generate_synthetic(
-            agents[agent_id], n_bits, N_SYNTHETIC, rng,
-            X_train=agent_X_train[agent_id]
-        )
-        packets[agent_id] = (X_syn, y_syn)
-        print(f"  Agent {agent_id}: generated {N_SYNTHETIC} synthetic samples "
-              f"(attack ratio: {y_syn.mean():.3f})")
+        packet = strategy.generate(agents[agent_id])
+        packets[agent_id] = packet
+        print(f"  Agent {agent_id}: generated {len(packet.X)} synthetic samples "
+              f"(attack ratio: {packet.y.mean():.3f})")
 
     # All-to-all sharing: each agent absorbs all peers' synthetic data
     for agent_id in AGENT_IDS:
-        peer_X = []
-        peer_y = []
         for peer_id in AGENT_IDS:
             if peer_id != agent_id:
-                X_syn, y_syn = packets[peer_id]
-                peer_X.append(X_syn)
-                peer_y.append(y_syn)
                 print(f"  Agent {agent_id} ← absorbing from {peer_id}")
+                t0 = time.time()
+                result = strategy.absorb(agents[agent_id], packets[peer_id])
+                dt = time.time() - t0
+                print(f"    Absorbed + retrained ({ABSORB_EPOCHS} epochs, {dt:.1f}s)")
 
-        X_absorb = np.vstack(peer_X)
-        y_absorb = np.concatenate(peer_y)
-
-        # Retrain on absorbed data
-        t0 = time.time()
-        for epoch in range(ABSORB_EPOCHS):
-            agents[agent_id].fit(X_absorb, y_absorb, epochs=1, incremental=True)
-        dt = time.time() - t0
-        print(f"  Agent {agent_id}: absorbed + retrained ({ABSORB_EPOCHS} epochs, {dt:.1f}s)")
 
     # ── Phase 4: Post-share evaluation ───────────────────────────────────
     print(f"\n{BOLD}{'='*60}")
@@ -260,7 +229,7 @@ def main():
     post_results = {}
     for agent_id in AGENT_IDS:
         overall, seen, unseen = evaluate_agent(
-            agents[agent_id], X_test, y_test, labels,
+            agents[agent_id].tm, X_test, y_test, labels,
             agent_id, agent_attacks[agent_id]
         )
         post_results[agent_id] = (overall, seen, unseen)
