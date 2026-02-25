@@ -16,6 +16,8 @@ import pandas as pd
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
 from pyTsetlinMachine.tm import MultiClassTsetlinMachine
+from tm_collective.strategies.sharing import SyntheticDataStrategy
+from tm_collective.knowledge_packet import KnowledgePacket
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 CROSS_ENV_DIR = os.path.join(SCRIPT_DIR, "..", "cic_cross_env")
@@ -238,29 +240,26 @@ def evaluate_agent(tm, X_test, y_test, labels, seen_attacks):
     return overall_acc, attack_recalls, unseen
 
 
-def generate_synthetic(tm, n_bits, n_samples, rng, X_train, flip_rate=0.15):
-    target_per_class = n_samples // 2
-    class_0_X, class_1_X = [], []
-    for _ in range(50):
-        if len(class_0_X) >= target_per_class and len(class_1_X) >= target_per_class:
-            break
-        indices = rng.randint(0, len(X_train), size=n_samples)
-        X_batch = X_train[indices].copy()
-        flip_mask = rng.random(X_batch.shape) < flip_rate
-        X_batch = np.where(flip_mask, 1 - X_batch, X_batch).astype(np.int32)
-        y_batch = tm.predict(X_batch)
-        for cls, coll in [(0, class_0_X), (1, class_1_X)]:
-            mask = y_batch == cls
-            needed = target_per_class - len(coll)
-            if needed > 0 and mask.sum() > 0:
-                coll.append(X_batch[mask][:needed])
-    X_0 = np.vstack(class_0_X)[:target_per_class] if class_0_X else np.empty((0, n_bits), dtype=np.int32)
-    X_1 = np.vstack(class_1_X)[:target_per_class] if class_1_X else np.empty((0, n_bits), dtype=np.int32)
-    X_syn = np.vstack([X_0, X_1]) if len(X_0) > 0 and len(X_1) > 0 else \
-            X_0 if len(X_1) == 0 else X_1
-    y_syn = np.array([0]*len(X_0) + [1]*len(X_1), dtype=np.int32)
-    perm = rng.permutation(len(X_syn))
-    return X_syn[perm], y_syn[perm]
+class StandaloneAgent:
+    """Wrapper to make standalone experiment code compatible with Sharing Strategies."""
+    def __init__(self, tm, X_train, y_train, schema_mock, agent_id):
+        self.tm = tm
+        self.X_buffer = [X_train]
+        self.y_buffer = [y_train]
+        self.X_own_buffer = [X_train]
+        self.y_own_buffer = [y_train]
+        self.schema = schema_mock
+        self.agent_id = agent_id
+        self.round_i = 1
+        self.last_accuracy = 0.0
+        self._fitted = True
+        self.n_observations = len(X_train)
+
+    def _reset_tm(self):
+        """Recreate the TM to clear its state before retraining."""
+        self.tm = MultiClassTsetlinMachine(
+            TM_CLAUSES, TM_T, TM_S, number_of_state_bits=8
+        )
 
 
 # ── Main experiment ───────────────────────────────────────────────────────
@@ -278,44 +277,29 @@ def run_condition(condition, seed, eval_settings, agent_data, n_bits, agent_ids)
         tm = MultiClassTsetlinMachine(TM_CLAUSES, TM_T, TM_S, number_of_state_bits=8)
         for _ in range(TRAIN_EPOCHS):
             tm.fit(X_train, y_train, epochs=1, incremental=True)
-        agents[agent_id] = tm
+        wrapper = StandaloneAgent(tm, X_train, y_train, type("MockSchema", (), {"n_binary": n_bits}), agent_id)
+        agents[agent_id] = wrapper
         agent_attacks[agent_id] = attacks
+
+    rate_mode = "graduated" if condition == "synthetic_graduated" else "fixed"
+    strategy = SyntheticDataStrategy(
+        n_synthetic=N_SYNTHETIC, 
+        retrain_epochs=ABSORB_EPOCHS,
+        mode="perturb",
+        rate_mode=rate_mode,
+        absorption="full"
+    )
 
     # Generate synthetic data
     packets = {}
     for agent_id in agent_ids:
-        if condition == "synthetic_graduated":
-            samples_per_rate = N_SYNTHETIC // len(GRADUATED_RATES)
-            rate_packets = []
-            for rate in GRADUATED_RATES:
-                Xr, yr = generate_synthetic(
-                    agents[agent_id], n_bits, samples_per_rate, rng,
-                    X_train=agent_data[agent_id][0], flip_rate=rate
-                )
-                rate_packets.append((Xr, yr))
-            X_syn = np.vstack([p[0] for p in rate_packets])
-            y_syn = np.concatenate([p[1] for p in rate_packets])
-            perm = rng.permutation(len(X_syn))
-            X_syn, y_syn = X_syn[perm], y_syn[perm]
-        else:
-            X_syn, y_syn = generate_synthetic(
-                agents[agent_id], n_bits, N_SYNTHETIC, rng,
-                X_train=agent_data[agent_id][0]
-            )
-        packets[agent_id] = (X_syn, y_syn)
+        packets[agent_id] = strategy.generate(agents[agent_id])
 
     # All-to-all sharing
     for agent_id in agent_ids:
-        peer_X, peer_y = [], []
         for peer_id in agent_ids:
             if peer_id != agent_id:
-                Xs, ys = packets[peer_id]
-                peer_X.append(Xs)
-                peer_y.append(ys)
-        X_absorb = np.vstack(peer_X)
-        y_absorb = np.concatenate(peer_y)
-        for _ in range(ABSORB_EPOCHS):
-            agents[agent_id].fit(X_absorb, y_absorb, epochs=1, incremental=True)
+                strategy.absorb(agents[agent_id], packets[peer_id])
 
     # Evaluate
     results = {}
@@ -323,8 +307,9 @@ def run_condition(condition, seed, eval_settings, agent_data, n_bits, agent_ids)
         results[setting] = {}
         for agent_id in agent_ids:
             overall, per_attack, unseen = evaluate_agent(
-                agents[agent_id], X_test, y_test, labels, agent_attacks[agent_id]
+                agents[agent_id].tm, X_test, y_test, labels, agent_attacks[agent_id]
             )
+            agents[agent_id].last_accuracy = overall
             results[setting][agent_id] = {
                 "overall": overall, "per_attack": per_attack, "unseen": unseen,
             }

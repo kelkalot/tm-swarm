@@ -18,6 +18,9 @@ import numpy as np
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
 
 from pyTsetlinMachine.tm import MultiClassTsetlinMachine
+from tm_collective.strategies.sharing import SyntheticDataStrategy, ClauseTransferStrategy
+from tm_collective.knowledge_packet import KnowledgePacket
+import warnings
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(SCRIPT_DIR, "data", "prepared")
@@ -90,138 +93,27 @@ def evaluate_agent(tm, X_test, y_test, labels, seen_attacks):
     return overall_acc, attack_recalls, seen_recall, unseen_recall
 
 
-def generate_synthetic(tm, n_bits, n_samples, rng, X_train, flip_rate=0.15):
-    """Generate class-balanced synthetic data via perturbation + rejection sampling."""
-    target_per_class = n_samples // 2
-    class_0_X, class_1_X = [], []
-    attempts = 0
-    max_attempts = 50
+class StandaloneAgent:
+    """Wrapper to make standalone experiment code compatible with Sharing Strategies."""
+    def __init__(self, tm, X_train, y_train, schema_mock, agent_id):
+        self.tm = tm
+        self.X_buffer = [X_train]
+        self.y_buffer = [y_train]
+        self.X_own_buffer = [X_train]
+        self.y_own_buffer = [y_train]
+        self.schema = schema_mock
+        self.agent_id = agent_id
+        self.round_i = 1
+        self.last_accuracy = 0.0
+        self._fitted = True
+        self.n_observations = len(X_train)
 
-    while (len(class_0_X) < target_per_class or len(class_1_X) < target_per_class) \
-            and attempts < max_attempts:
-        attempts += 1
-        indices = rng.randint(0, len(X_train), size=n_samples)
-        X_batch = X_train[indices].copy()
-        flip_mask = rng.random(X_batch.shape) < flip_rate
-        X_batch = np.where(flip_mask, 1 - X_batch, X_batch).astype(np.int32)
-        y_batch = tm.predict(X_batch)
+    def _reset_tm(self):
+        """Recreate the TM to clear its state before retraining."""
+        self.tm = MultiClassTsetlinMachine(
+            TM_CLAUSES, TM_T, TM_S, number_of_state_bits=8
+        )
 
-        for cls, collector in [(0, class_0_X), (1, class_1_X)]:
-            mask = y_batch == cls
-            needed = target_per_class - len(collector)
-            if needed > 0 and mask.sum() > 0:
-                collector.append(X_batch[mask][:needed])
-
-    X_0 = np.vstack(class_0_X)[:target_per_class] if class_0_X else np.empty((0, n_bits), dtype=np.int32)
-    X_1 = np.vstack(class_1_X)[:target_per_class] if class_1_X else np.empty((0, n_bits), dtype=np.int32)
-    X_syn = np.vstack([X_0, X_1]) if len(X_0) > 0 and len(X_1) > 0 else \
-            X_0 if len(X_1) == 0 else X_1
-    y_syn = np.array([0] * len(X_0) + [1] * len(X_1), dtype=np.int32)
-    perm = rng.permutation(len(X_syn))
-    return X_syn[perm], y_syn[perm]
-
-
-def generate_synthetic_class(tm, n_bits, n_samples, rng, X_train, target_class, flip_rate=0.15):
-    """Generate synthetic data for a single class via perturbation + rejection sampling."""
-    collected = []
-    for _ in range(50):
-        if sum(len(c) for c in collected) >= n_samples:
-            break
-        indices = rng.randint(0, len(X_train), size=n_samples)
-        X_batch = X_train[indices].copy()
-        flip_mask = rng.random(X_batch.shape) < flip_rate
-        X_batch = np.where(flip_mask, 1 - X_batch, X_batch).astype(np.int32)
-        y_batch = tm.predict(X_batch)
-        mask = y_batch == target_class
-        needed = n_samples - sum(len(c) for c in collected)
-        if needed > 0 and mask.sum() > 0:
-            collected.append(X_batch[mask][:needed])
-    if collected:
-        X_out = np.vstack(collected)[:n_samples]
-    else:
-        X_out = np.empty((0, n_bits), dtype=np.int32)
-    return X_out
-
-
-# ── Clause transfer helpers (adapted from ClauseTransferStrategy) ─────────
-
-def decode_ta_states(ta_packed, n_clauses, n_features, n_state_bits, n_ta_chunks):
-    n_literals = 2 * n_features
-    states = np.zeros((n_clauses, n_literals), dtype=np.int32)
-    for ci in range(n_clauses):
-        for chunk in range(n_ta_chunks):
-            for bit in range(n_state_bits):
-                idx = ci * n_ta_chunks * n_state_bits + chunk * n_state_bits + bit
-                val = ta_packed[idx]
-                for j in range(32):
-                    lit = chunk * 32 + j
-                    if lit >= n_literals:
-                        break
-                    states[ci, lit] |= (((val >> j) & 1) << bit)
-    return states
-
-
-def encode_ta_states(states, n_clauses, n_features, n_state_bits, n_ta_chunks):
-    n_literals = 2 * n_features
-    packed = np.zeros(n_clauses * n_ta_chunks * n_state_bits, dtype=np.uint32)
-    for ci in range(n_clauses):
-        for chunk in range(n_ta_chunks):
-            for bit in range(n_state_bits):
-                idx = ci * n_ta_chunks * n_state_bits + chunk * n_state_bits + bit
-                val = np.uint32(0)
-                for j in range(32):
-                    lit = chunk * 32 + j
-                    if lit >= n_literals:
-                        break
-                    val |= np.uint32(((int(states[ci, lit]) >> bit) & 1) << j)
-                packed[idx] = val
-    return packed
-
-
-def clause_confidence(decoded, n_state_bits):
-    midpoint = 2 ** (n_state_bits - 1)
-    return np.mean(np.abs(decoded.astype(float) - midpoint) / midpoint, axis=1)
-
-
-def extract_top_clauses(tm, n_features, top_k):
-    """Extract top-K most confident clauses per class."""
-    n_clauses = tm.number_of_clauses
-    state_bits = tm.number_of_state_bits
-    ta_chunks = tm.number_of_ta_chunks
-    n_classes = tm.number_of_classes
-
-    top_clauses = {}
-    full_state = tm.get_state()
-    for class_i in range(n_classes):
-        _, ta_packed = full_state[class_i]
-        decoded = decode_ta_states(ta_packed, n_clauses, n_features, state_bits, ta_chunks)
-        conf = clause_confidence(decoded, state_bits)
-        top_idx = np.argsort(conf)[-top_k:]
-        top_clauses[class_i] = decoded[top_idx]
-    return top_clauses
-
-
-def inject_clauses(tm, n_features, imported_clauses):
-    """Inject imported clauses into TM, replacing least confident existing clauses."""
-    n_clauses = tm.number_of_clauses
-    state_bits = tm.number_of_state_bits
-    ta_chunks = tm.number_of_ta_chunks
-    n_classes = tm.number_of_classes
-
-    full_state = list(tm.get_state())
-    for class_i in range(n_classes):
-        if class_i not in imported_clauses:
-            continue
-        imported_decoded = imported_clauses[class_i]
-        cw, ta_packed = full_state[class_i]
-        decoded = decode_ta_states(ta_packed, n_clauses, n_features, state_bits, ta_chunks)
-        conf = clause_confidence(decoded, state_bits)
-        weakest = np.argsort(conf)[:len(imported_decoded)]
-        for i, ci in enumerate(weakest):
-            decoded[ci] = imported_decoded[i]
-        new_packed = encode_ta_states(decoded, n_clauses, n_features, state_bits, ta_chunks)
-        full_state[class_i] = (cw, new_packed)
-    tm.set_state(full_state)
 
 
 def print_eval(agent_id, overall, seen, unseen, label=""):
@@ -277,7 +169,8 @@ def run_condition(condition, seed, eval_settings, agent_data, n_bits):
         tm = MultiClassTsetlinMachine(TM_CLAUSES, TM_T, TM_S, number_of_state_bits=8)
         for _ in range(TRAIN_EPOCHS):
             tm.fit(X_train, y_train, epochs=1, incremental=True)
-        agents[agent_id] = tm
+        wrapper = StandaloneAgent(tm, X_train, y_train, type("MockSchema", (), {"n_binary": n_bits}), agent_id)
+        agents[agent_id] = wrapper
         agent_attacks[agent_id] = attacks
 
     # Pre-share evaluation
@@ -286,8 +179,9 @@ def run_condition(condition, seed, eval_settings, agent_data, n_bits):
         pre_results[setting] = {}
         for agent_id in AGENT_IDS:
             overall, per_attack, seen, unseen = evaluate_agent(
-                agents[agent_id], X_test, y_test, labels, agent_attacks[agent_id]
+                agents[agent_id].tm, X_test, y_test, labels, agent_attacks[agent_id]
             )
+            agents[agent_id].last_accuracy = overall
             pre_results[setting][agent_id] = {
                 "overall": overall, "per_attack": per_attack,
                 "seen": seen, "unseen": unseen,
@@ -298,149 +192,87 @@ def run_condition(condition, seed, eval_settings, agent_data, n_bits):
 
     # Knowledge sharing
     if condition in ("synthetic", "synthetic_graduated",
-                      "synthetic_attackonly", "synthetic_graduated_attackonly"):
-        # Determine perturbation mode
+                      "synthetic_attackonly", "synthetic_graduated_attackonly",
+                      "synthetic_hybrid", "synthetic_graduated_hybrid"):
+                      
         is_graduated = "graduated" in condition
         is_attackonly = "attackonly" in condition
+        is_hybrid = "hybrid" in condition
+
+        # Map to framework config
+        rate_mode = "graduated" if is_graduated else "fixed"
+        
+        # We handle hybrid/attackonly customly through the framework
+        # If hybrid, let framework handle it perfectly.
+        # If attackonly or baseline, we will do manual absorption for ablation.
+        absorption_mode = "hybrid" if is_hybrid else "full"
+        
+        # We need the random state set globally for the framework's numpy calls during generation
+        np.random.seed(seed)
+        
+        # Instantiate strategy
+        strategy = SyntheticDataStrategy(
+            n_synthetic=N_SYNTHETIC, 
+            retrain_epochs=ABSORB_EPOCHS,
+            mode="perturb",
+            rate_mode=rate_mode,
+            absorption=absorption_mode
+        )
 
         # Generate synthetic data from each agent
         packets = {}
         for agent_id in AGENT_IDS:
-            if is_graduated:
-                # Graduated: generate at multiple perturbation rates and combine
-                samples_per_rate = N_SYNTHETIC // len(GRADUATED_RATES)
-                rate_packets = []
-                for rate in GRADUATED_RATES:
-                    X_r, y_r = generate_synthetic(
-                        agents[agent_id], n_bits, samples_per_rate, rng,
-                        X_train=agent_data[agent_id][0], flip_rate=rate
-                    )
-                    rate_packets.append((X_r, y_r))
-                X_syn = np.vstack([p[0] for p in rate_packets])
-                y_syn = np.concatenate([p[1] for p in rate_packets])
-                perm = rng.permutation(len(X_syn))
-                X_syn, y_syn = X_syn[perm], y_syn[perm]
-            else:
-                # Fixed rate (original)
-                X_syn, y_syn = generate_synthetic(
-                    agents[agent_id], n_bits, N_SYNTHETIC, rng,
-                    X_train=agent_data[agent_id][0]
-                )
-            packets[agent_id] = (X_syn, y_syn)
+            # Setting seed ensures reproducibility within the framework's generator calls
+            packet = strategy.generate(agents[agent_id])
+            packets[agent_id] = packet
 
         # All-to-all sharing
         for agent_id in AGENT_IDS:
-            peer_X = []
-            peer_y = []
-            for peer_id in AGENT_IDS:
-                if peer_id != agent_id:
-                    X_syn, y_syn = packets[peer_id]
-                    if is_attackonly:
-                        # Keep only attack-labeled samples (y=1)
-                        attack_mask = y_syn == 1
-                        peer_X.append(X_syn[attack_mask])
-                        peer_y.append(y_syn[attack_mask])
-                    else:
-                        peer_X.append(X_syn)
-                        peer_y.append(y_syn)
-
-            X_peer = np.vstack(peer_X)
-            y_peer = np.concatenate(peer_y)
-
-            if is_attackonly:
-                # Combine peer attacks with receiver's own training data
+            if is_hybrid or (not is_attackonly and not is_hybrid):
+                # We can use the framework's native absorb for hybrid and full modes
+                for peer_id in AGENT_IDS:
+                    if peer_id != agent_id:
+                        strategy.absorb(agents[agent_id], packets[peer_id])
+            else:
+                # Manual absorption for attack-only ablation
+                peer_X = []
+                peer_y = []
+                for peer_id in AGENT_IDS:
+                    if peer_id != agent_id:
+                        packet = packets[peer_id]
+                        attack_mask = packet.y == 1
+                        peer_X.append(packet.X[attack_mask])
+                        peer_y.append(packet.y[attack_mask])
+                
+                X_peer = np.vstack(peer_X)
+                y_peer = np.concatenate(peer_y)
+                
+                # Combine peer attacks with receiver's own training data (no local normals)
                 X_own, y_own = agent_data[agent_id][0], agent_data[agent_id][1]
                 X_absorb = np.vstack([X_own, X_peer])
                 y_absorb = np.concatenate([y_own, y_peer])
-            else:
-                X_absorb = X_peer
-                y_absorb = y_peer
-
-            for _ in range(ABSORB_EPOCHS):
-                agents[agent_id].fit(X_absorb, y_absorb, epochs=1, incremental=True)
-
-    elif condition in ("synthetic_hybrid", "synthetic_graduated_hybrid"):
-        is_graduated = "graduated" in condition
-
-        # Generate synthetic data from each agent (same as before)
-        packets = {}
-        for agent_id in AGENT_IDS:
-            if is_graduated:
-                samples_per_rate = N_SYNTHETIC // len(GRADUATED_RATES)
-                rate_packets = []
-                for rate in GRADUATED_RATES:
-                    X_r, y_r = generate_synthetic(
-                        agents[agent_id], n_bits, samples_per_rate, rng,
-                        X_train=agent_data[agent_id][0], flip_rate=rate
-                    )
-                    rate_packets.append((X_r, y_r))
-                X_syn = np.vstack([p[0] for p in rate_packets])
-                y_syn = np.concatenate([p[1] for p in rate_packets])
-                perm = rng.permutation(len(X_syn))
-                X_syn, y_syn = X_syn[perm], y_syn[perm]
-            else:
-                X_syn, y_syn = generate_synthetic(
-                    agents[agent_id], n_bits, N_SYNTHETIC, rng,
-                    X_train=agent_data[agent_id][0]
-                )
-            packets[agent_id] = (X_syn, y_syn)
-
-        # Hybrid sharing: peer attacks + locally-generated normal
-        for agent_id in AGENT_IDS:
-            peer_attack_X = []
-            for peer_id in AGENT_IDS:
-                if peer_id != agent_id:
-                    X_syn, y_syn = packets[peer_id]
-                    attack_mask = y_syn == 1
-                    peer_attack_X.append(X_syn[attack_mask])
-
-            X_peer_attacks = np.vstack(peer_attack_X)
-            y_peer_attacks = np.ones(len(X_peer_attacks), dtype=np.int32)
-
-            # Generate normal samples locally from receiver's own TM
-            # Use the same perturbation approach as the attack generation
-            n_normal_target = len(X_peer_attacks)
-            if is_graduated:
-                # Match graduated rates used for attack generation
-                normal_per_rate = n_normal_target // len(GRADUATED_RATES)
-                normal_parts = []
-                for rate in GRADUATED_RATES:
-                    X_n = generate_synthetic_class(
-                        agents[agent_id], n_bits, normal_per_rate, rng,
-                        X_train=agent_data[agent_id][0], target_class=0,
-                        flip_rate=rate
-                    )
-                    normal_parts.append(X_n)
-                X_own_normal = np.vstack(normal_parts)[:n_normal_target]
-            else:
-                X_own_normal = generate_synthetic_class(
-                    agents[agent_id], n_bits, n_normal_target, rng,
-                    X_train=agent_data[agent_id][0], target_class=0,
-                    flip_rate=0.15
-                )
-            y_own_normal = np.zeros(len(X_own_normal), dtype=np.int32)
-
-            # Combine: own training + peer attacks + local normal
-            X_own, y_own = agent_data[agent_id][0], agent_data[agent_id][1]
-            X_absorb = np.vstack([X_own, X_peer_attacks, X_own_normal])
-            y_absorb = np.concatenate([y_own, y_peer_attacks, y_own_normal])
-
-            for _ in range(ABSORB_EPOCHS):
-                agents[agent_id].fit(X_absorb, y_absorb, epochs=1, incremental=True)
+                
+                agents[agent_id]._reset_tm()
+                agents[agent_id].tm.fit(X_absorb, y_absorb, epochs=ABSORB_EPOCHS)
+                # Keep buffers updated for consistency even though script doesn't use them further
+                agents[agent_id].X_buffer = [X_absorb]
+                agents[agent_id].y_buffer = [y_absorb]
 
     elif condition == "clause":
-        # Extract top-K clauses from each agent
-        clause_packets = {}
-        for agent_id in AGENT_IDS:
-            clause_packets[agent_id] = extract_top_clauses(
-                agents[agent_id], n_bits, CLAUSE_TOP_K
-            )
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            # Extract top-K clauses from each agent
+            strategy = ClauseTransferStrategy(top_k=CLAUSE_TOP_K)
+            packets = {}
+            for agent_id in AGENT_IDS:
+                packets[agent_id] = strategy.generate(agents[agent_id])
 
-        # All-to-all injection
-        for agent_id in AGENT_IDS:
-            for peer_id in AGENT_IDS:
-                if peer_id != agent_id:
-                    inject_clauses(agents[agent_id], n_bits, clause_packets[peer_id])
+            # All-to-all injection
+            for agent_id in AGENT_IDS:
+                for peer_id in AGENT_IDS:
+                    if peer_id != agent_id:
+                        strategy.absorb(agents[agent_id], packets[peer_id])
+
 
     # Post-share evaluation
     post_results = {}
@@ -448,7 +280,7 @@ def run_condition(condition, seed, eval_settings, agent_data, n_bits):
         post_results[setting] = {}
         for agent_id in AGENT_IDS:
             overall, per_attack, seen, unseen = evaluate_agent(
-                agents[agent_id], X_test, y_test, labels, agent_attacks[agent_id]
+                agents[agent_id].tm, X_test, y_test, labels, agent_attacks[agent_id]
             )
             post_results[setting][agent_id] = {
                 "overall": overall, "per_attack": per_attack,
