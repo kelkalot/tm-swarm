@@ -129,15 +129,15 @@ def save_buffer(workspace: str, agent_id: str, X_list: list, y_list: list):
 def pack_packet(sender_id: str, X: np.ndarray, y: np.ndarray, metadata: dict = None) -> str:
     """
     Encode a knowledge packet as a compact JSON string suitable for sessions_send.
-    X stored as list of bit-strings (e.g. "101001"), y as one bit-string.
+    X stored as list of bit-strings (e.g. "101001"), y as a JSON list of ints.
     ~8KB for 500 samples × 12 features.
     """
     return json.dumps({
-        "v": 1,
+        "v": 2,
         "type": "tm_knowledge_packet",
         "sender": sender_id,
         "X": ["".join(map(str, row)) for row in X.tolist()],
-        "y": "".join(map(str, y.tolist())),
+        "y": y.tolist(),
         "meta": metadata or {},
     })
 
@@ -145,10 +145,16 @@ def unpack_packet(packet_json: str, n_features: int) -> tuple[str, np.ndarray, n
     """
     Decode a knowledge packet JSON string.
     Returns (sender_id, X, y, metadata).
+    Supports both legacy v1 (y as bit-string) and v2 (y as int list) formats.
     """
     d = json.loads(packet_json)
     X = np.array([[int(b) for b in row] for row in d["X"]], dtype=np.uint32)
-    y = np.array([int(b) for b in d["y"]], dtype=np.uint32)
+    # Support both legacy (string) and new (list) y formats
+    raw_y = d["y"]
+    if isinstance(raw_y, str):
+        y = np.array([int(b) for b in raw_y], dtype=np.uint32)  # legacy v1
+    else:
+        y = np.array(raw_y, dtype=np.uint32)  # v2 list format
     return d["sender"], X, y, d.get("meta", {})
 
 # ── Noise application ─────────────────────────────────────────────────────────

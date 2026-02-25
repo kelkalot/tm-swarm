@@ -30,6 +30,7 @@ class TMNode:
         n_clauses:       TM hyperparameter (default 80)
         T:               TM threshold hyperparameter (default 20)
         s:               TM specificity hyperparameter (default 3.9)
+        state_bits:      TM number of state bits (default 8)
         sharing:         SharingStrategy instance (default SyntheticDataStrategy())
         epochs_per_round: training epochs applied each time observe_batch() is called
 
@@ -38,8 +39,10 @@ class TMNode:
         schema:          WorldSchema
         round_i:         current round counter
         last_accuracy:   float, most recent accuracy measurement
-        X_buffer:        list of np.ndarray training inputs (noisy)
-        y_buffer:        list of np.ndarray training labels
+        X_buffer:        list of np.ndarray — all training inputs (own + absorbed)
+        y_buffer:        list of np.ndarray — all training labels (own + absorbed)
+        X_own_buffer:    list of np.ndarray — agent's own observed data only
+        y_own_buffer:    list of np.ndarray — agent's own labels only
         _fitted:         bool
         _acc_history:    list of float
     """
@@ -53,6 +56,7 @@ class TMNode:
         n_clauses: int = 80,
         T: int = 20,
         s: float = 3.9,
+        state_bits: int = 8,
         sharing: SharingStrategy | None = None,
         epochs_per_round: int = 50,
     ):
@@ -63,6 +67,7 @@ class TMNode:
         self._n_clauses = n_clauses
         self._T = T
         self._s = s
+        self._state_bits = state_bits
         self.sharing = sharing or SyntheticDataStrategy()
         self.epochs_per_round = epochs_per_round
 
@@ -70,6 +75,8 @@ class TMNode:
         self.last_accuracy: float = 0.5
         self.X_buffer: list[np.ndarray] = []
         self.y_buffer: list[np.ndarray] = []
+        self.X_own_buffer: list[np.ndarray] = []
+        self.y_own_buffer: list[np.ndarray] = []
         self._fitted = False
         self._acc_history: list[float] = []
 
@@ -78,6 +85,7 @@ class TMNode:
     def _make_tm(self) -> MultiClassTsetlinMachine:
         return MultiClassTsetlinMachine(
             self._n_clauses, self._T, self._s,
+            number_of_state_bits=self._state_bits,
             boost_true_positive_feedback=1,
         )
 
@@ -112,6 +120,8 @@ class TMNode:
         X_noisy = self._apply_noise(X_clean)
         self.X_buffer.append(X_noisy)
         self.y_buffer.append(y)
+        self.X_own_buffer.append(X_noisy)
+        self.y_own_buffer.append(y)
 
         X_all = np.vstack(self.X_buffer)
         y_all = np.concatenate(self.y_buffer)

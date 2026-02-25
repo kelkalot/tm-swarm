@@ -57,7 +57,12 @@ np.random.seed(SEED + 9999)
 X_test, y_test = generate_obs(N_TEST, seed=SEED + 9999)
 np.random.seed(SEED)
 
-sharing = SyntheticDataStrategy(n_synthetic=500, retrain_epochs=200)
+sharing = SyntheticDataStrategy(
+    n_synthetic=500,
+    retrain_epochs=200,
+    mode="perturb",
+    rate_mode="graduated",
+)
 
 node_north = TMNode("north", schema, noisy_features=["motion", "category"],
                     noise_rate=0.45, sharing=sharing, epochs_per_round=50)

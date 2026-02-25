@@ -50,7 +50,12 @@ X_test = np.random.randint(0, 2, (N_TEST, N_FEATURES)).astype(np.uint32)
 y_test = (X_test[:, 2] & X_test[:, 9]).astype(np.uint32)
 np.random.seed(SEED)
 
-sharing = SyntheticDataStrategy(n_synthetic=500, retrain_epochs=200)
+sharing = SyntheticDataStrategy(
+    n_synthetic=500,
+    retrain_epochs=200,
+    mode="perturb",
+    rate_mode="graduated",
+)
 
 nodes = {
     "A": TMNode("A", schema, noisy_features=[f"f{i}" for i in range(3,  12)],

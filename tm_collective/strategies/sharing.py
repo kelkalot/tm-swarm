@@ -3,14 +3,18 @@
 Sharing strategies: how agents export and absorb knowledge.
 
 SyntheticDataStrategy (RECOMMENDED):
-  - Generating agent labels N random inputs with its TM
-  - Receiving agent adds those (X, y_pred) to its training buffer and retrains
-  - Validated: 2-agent AND: 83% → 99% post-share
+  - Generate synthetic data from a trained TM and share with peers.
+  - Supports perturbation-based generation (perturbs real training data)
+    or pure random inputs (legacy fallback).
+  - Supports graduated or fixed flip rates for perturbation.
+  - Supports full or hybrid absorption modes.
+  - Validated: cross-env experiments (CIC-IDS2017 → CSE-CIC-IDS2018)
+    show graduated perturbation achieves 51.3% cross-env detection,
+    matching a centralized baseline (50.7%).
 
-ClauseTransferStrategy (EXPERIMENTAL):
-  - Directly injects TA states from confident clauses into peer's TM
-  - Requires both agents to use identical TM hyperparameters
-  - Can degrade accuracy; only use if you need interpretable clause inspection
+ClauseTransferStrategy (DEPRECATED):
+  - Showed no improvement over baseline in cross-environment experiments.
+  - Kept for backward compatibility only.
 """
 
 from __future__ import annotations
@@ -38,46 +42,223 @@ class SharingStrategy(ABC):
 
 class SyntheticDataStrategy(SharingStrategy):
     """
-    Generate synthetic (random input → TM prediction) pairs.
-    Receiving agent trains on them as additional data.
+    Generate synthetic data from a trained TM and share with peers.
+
+    Generation modes (controls how synthetic inputs are created):
+        "perturb"   — perturb real training data with bit flips (RECOMMENDED).
+                      Better cross-environment generalization than random inputs.
+                      Requires training data in tm_node.X_buffer or X_own_buffer.
+        "random"    — pure random binary inputs (original behavior, fallback).
+
+    Perturbation rate modes (controls flip probability):
+        "graduated" — sample flip_rate uniformly from [flip_rate_min, flip_rate_max]
+                      each iteration. Mixes close-to-real and exploratory samples.
+                      Best cross-environment performance. (RECOMMENDED)
+        "fixed"     — constant flip_rate = flip_rate_min throughout.
+
+    Absorption modes (controls how receiver integrates peer knowledge):
+        "full"      — absorb all peer samples (attacks + normals). Best within-env.
+        "hybrid"    — absorb peer attack samples (y=1) only; generate local normals
+                      from receiver's own TM using X_own_buffer. Best stability
+                      (lowest variance across seeds).
+
+    Note: all agents in a collective should use the same strategy configuration.
 
     Args:
-        n_synthetic:    number of synthetic samples to generate per share event
-        retrain_epochs: epochs to train after absorption (more = better integration)
+        n_synthetic:    synthetic samples to generate per share event (default 500)
+        retrain_epochs: epochs after absorption (default 150)
+        mode:           "perturb" | "random" (default "perturb")
+        rate_mode:      "graduated" | "fixed" (default "graduated")
+        flip_rate_min:  minimum flip probability (default 0.05)
+        flip_rate_max:  maximum flip probability (default 0.50)
+        absorption:     "full" | "hybrid" (default "full")
     """
 
-    def __init__(self, n_synthetic: int = 500, retrain_epochs: int = 150):
+    def __init__(
+        self,
+        n_synthetic: int = 500,
+        retrain_epochs: int = 150,
+        mode: str = "perturb",
+        rate_mode: str = "graduated",
+        flip_rate_min: float = 0.05,
+        flip_rate_max: float = 0.50,
+        absorption: str = "full",
+    ):
         self.n_synthetic = n_synthetic
         self.retrain_epochs = retrain_epochs
+        self.mode = mode
+        self.rate_mode = rate_mode
+        self.flip_rate_min = flip_rate_min
+        self.flip_rate_max = flip_rate_max
+        self.absorption = absorption
+
+    def _sample_flip_rate(self) -> float:
+        """Sample a flip rate based on the configured rate_mode."""
+        if self.rate_mode == "graduated":
+            return float(np.random.uniform(self.flip_rate_min, self.flip_rate_max))
+        return self.flip_rate_min
+
+    def _get_training_pool(self, tm_node) -> np.ndarray | None:
+        """Get the training data pool for perturbation-based generation.
+
+        Prefers X_own_buffer (agent's own data only, no peer contamination).
+        Falls back to X_buffer if X_own_buffer is not available.
+        Returns None if no data is available.
+        """
+        own = getattr(tm_node, "X_own_buffer", None)
+        if own:
+            return np.vstack(own).astype(np.uint32)
+        if tm_node.X_buffer:
+            return np.vstack(tm_node.X_buffer).astype(np.uint32)
+        return None
+
+    def _generate_perturbed(self, tm_node, n: int, n_binary: int):
+        """
+        Class-balanced synthetic data via perturbation + rejection sampling.
+        Uses graduated or fixed flip rates based on rate_mode.
+        """
+        target_per_class = n // 2
+        class_0_X, class_1_X = [], []
+        n0, n1 = 0, 0
+        max_attempts = 50
+
+        X_pool = self._get_training_pool(tm_node)
+        if X_pool is None or len(X_pool) == 0:
+            return None, None  # signal to caller: fall back to random
+
+        for _ in range(max_attempts):
+            if n0 >= target_per_class and n1 >= target_per_class:
+                break
+
+            flip_rate = self._sample_flip_rate()
+
+            indices = np.random.randint(0, len(X_pool), size=n)
+            X_batch = X_pool[indices].copy()
+            flip_mask = np.random.random(X_batch.shape) < flip_rate
+            X_batch = np.where(flip_mask, 1 - X_batch, X_batch).astype(np.uint32)
+            y_batch = tm_node.tm.predict(X_batch)
+
+            for cls, collector in [(0, class_0_X), (1, class_1_X)]:
+                n_collected = sum(len(a) for a in collector)
+                needed = target_per_class - n_collected
+                mask = y_batch == cls
+                if needed > 0 and mask.sum() > 0:
+                    collector.append(X_batch[mask][:needed])
+
+            n0 = sum(len(a) for a in class_0_X)
+            n1 = sum(len(a) for a in class_1_X)
+
+        X_0 = np.vstack(class_0_X)[:target_per_class] if class_0_X else None
+        X_1 = np.vstack(class_1_X)[:target_per_class] if class_1_X else None
+
+        if X_0 is None or X_1 is None:
+            return None, None  # fall back to random
+
+        X_syn = np.vstack([X_0, X_1])
+        y_syn = np.array([0] * len(X_0) + [1] * len(X_1), dtype=np.uint32)
+        perm = np.random.permutation(len(X_syn))
+        return X_syn[perm], y_syn[perm]
+
+    def _generate_local_normals(self, tm_node, n: int, n_binary: int):
+        """Generate n normal-class (y=0) samples from receiver's own TM.
+
+        Uses X_own_buffer (uncontaminated by peer data) for perturbation.
+        Falls back to random inputs if no training pool is available.
+        """
+        collected = []
+        n_collected = 0
+        max_attempts = 30
+
+        X_pool = self._get_training_pool(tm_node)
+        if X_pool is not None and len(X_pool) > 0:
+            for _ in range(max_attempts):
+                if n_collected >= n:
+                    break
+                flip_rate = self._sample_flip_rate()
+                indices = np.random.randint(0, len(X_pool), size=n)
+                X_batch = X_pool[indices].copy()
+                flip_mask = np.random.random(X_batch.shape) < flip_rate
+                X_batch = np.where(flip_mask, 1 - X_batch, X_batch).astype(np.uint32)
+                y_batch = tm_node.tm.predict(X_batch)
+                normal_mask = y_batch == 0
+                needed = n - n_collected
+                if normal_mask.sum() > 0:
+                    collected.append(X_batch[normal_mask][:needed])
+                    n_collected += min(int(normal_mask.sum()), needed)
+
+        if not collected:
+            # Fallback: random inputs classified as normal
+            X_rand = np.random.randint(0, 2, (n * 2, n_binary)).astype(np.uint32)
+            y_rand = tm_node.tm.predict(X_rand)
+            normal_mask = y_rand == 0
+            X_rand = X_rand[normal_mask][:n]
+            if len(X_rand) == 0:
+                X_rand = np.random.randint(0, 2, (n, n_binary)).astype(np.uint32)
+            return X_rand, np.zeros(len(X_rand), dtype=np.uint32)
+
+        X_local = np.vstack(collected)[:n]
+        return X_local, np.zeros(len(X_local), dtype=np.uint32)
 
     def generate(self, tm_node, n: int | None = None) -> KnowledgePacket:
         n = n or self.n_synthetic
         n_binary = tm_node.schema.n_binary
 
         if not tm_node._fitted:
-            # Return random noise if not trained yet
             X_rand = np.random.randint(0, 2, (n, n_binary)).astype(np.uint32)
             y_rand = np.random.randint(0, 2, n).astype(np.uint32)
             return KnowledgePacket(tm_node.agent_id, tm_node.round_i, X_rand, y_rand,
                                    {"fitted": False})
 
-        X_rand = np.random.randint(0, 2, (n, n_binary)).astype(np.uint32)
-        y_pred = tm_node.tm.predict(X_rand).astype(np.uint32)
+        # Choose generation path
+        X_syn, y_syn = None, None
+        if self.mode == "perturb":
+            X_syn, y_syn = self._generate_perturbed(tm_node, n, n_binary)
+
+        if X_syn is None:
+            # Fallback: pure random (original behavior)
+            X_syn = np.random.randint(0, 2, (n, n_binary)).astype(np.uint32)
+            y_syn = tm_node.tm.predict(X_syn).astype(np.uint32)
 
         meta = {
             "fitted": True,
+            "mode": self.mode,
+            "rate_mode": self.rate_mode,
             "accuracy_at_share": tm_node.last_accuracy,
             "n_train_samples": tm_node.n_observations,
         }
-        return KnowledgePacket(tm_node.agent_id, tm_node.round_i, X_rand, y_pred, meta)
+        return KnowledgePacket(tm_node.agent_id, tm_node.round_i, X_syn, y_syn, meta)
 
     def absorb(self, tm_node, packet: KnowledgePacket) -> dict:
         """
-        Add packet's (X, y) to tm_node's buffer, reset TM, retrain from scratch.
-        Resetting ensures the imported knowledge is fully integrated.
+        Absorb a KnowledgePacket. Behavior depends on self.absorption:
+
+        "full":   add all peer samples to buffer, reset, retrain.
+                  Best within-environment performance.
+        "hybrid": add only peer attack samples (y=1); generate local normal
+                  samples from receiver's own TM. Best stability.
         """
-        tm_node.X_buffer.append(packet.X)
-        tm_node.y_buffer.append(packet.y)
+        if self.absorption == "hybrid" and tm_node._fitted:
+            attack_mask = packet.y == 1
+            X_peer = packet.X[attack_mask]
+            y_peer = packet.y[attack_mask]
+
+            if len(X_peer) > 0:
+                n_binary = tm_node.schema.n_binary
+                X_local, y_local = self._generate_local_normals(
+                    tm_node, len(X_peer), n_binary
+                )
+                tm_node.X_buffer.append(X_peer)
+                tm_node.y_buffer.append(y_peer)
+                tm_node.X_buffer.append(X_local)
+                tm_node.y_buffer.append(y_local)
+            else:
+                # No attack samples — absorb everything
+                tm_node.X_buffer.append(packet.X)
+                tm_node.y_buffer.append(packet.y)
+        else:
+            # "full" mode: original behavior
+            tm_node.X_buffer.append(packet.X)
+            tm_node.y_buffer.append(packet.y)
 
         # Reset and retrain from scratch on all accumulated data
         tm_node._reset_tm()
@@ -88,6 +269,7 @@ class SyntheticDataStrategy(SharingStrategy):
 
         return {
             "absorbed_from": packet.sender_id,
+            "absorption_mode": self.absorption,
             "packet_size": len(packet),
             "total_samples_now": len(X_all),
         }
@@ -95,24 +277,27 @@ class SyntheticDataStrategy(SharingStrategy):
 
 class ClauseTransferStrategy(SharingStrategy):
     """
-    EXPERIMENTAL. Directly injects confident TA states from source TM into target TM.
+    DEPRECATED. Showed no improvement over baseline in cross-environment
+    experiments (CIC-IDS2017 → CSE-CIC-IDS2018). Statistically indistinguishable
+    from no sharing across all conditions and seeds.
+
+    Use SyntheticDataStrategy instead.
+
+    Directly injects confident TA states from source TM into target TM.
 
     Requirements:
         - Both agents must use identical TM hyperparameters (n_clauses, T, s, state_bits)
         - Both agents must observe the same WorldSchema (identical binary feature space)
-
-    The strategy:
-        1. Source: decode all TA states from bit-packed representation
-        2. Source: score each clause by avg |state - midpoint| / midpoint (confidence)
-        3. Source: export top-K most confident clauses per class
-        4. Target: find its K least-confident clauses per class
-        5. Target: overwrite them with the source's confident clauses
-        6. Target: re-encode back to bit-packed format
-
-    Use SyntheticDataStrategy unless you specifically need to inspect transferred clauses.
     """
 
     def __init__(self, top_k: int = 10):
+        import warnings
+        warnings.warn(
+            "ClauseTransferStrategy is deprecated and showed no improvement "
+            "over baseline in validation experiments. Use SyntheticDataStrategy.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         self.top_k = top_k
 
     def _decode_ta_states(self, ta_packed, n_clauses, n_features, n_state_bits, n_ta_chunks):

@@ -61,11 +61,11 @@ def plot_accuracy(
                 marker=markers[i % len(markers)],
                 linewidth=2, color=colors[i % len(colors)], label=label)
 
-    for sr in share_rounds:
-        ax.axvline(x=sr, color="red", linestyle=":", linewidth=1.8, alpha=0.7)
-    if share_rounds:
-        ax.axvline(x=share_rounds[0], color="red", linestyle=":", linewidth=1.8,
-                   alpha=0.7, label="Sharing event")
+    for i, sr in enumerate(share_rounds):
+        ax.axvline(
+            x=sr, color="red", linestyle=":", linewidth=1.8, alpha=0.7,
+            label="Sharing event" if i == 0 else None,
+        )
 
     ax.set_xlabel("Observation Round", fontsize=12)
     ax.set_ylabel("Accuracy on Clean Test Set", fontsize=12)

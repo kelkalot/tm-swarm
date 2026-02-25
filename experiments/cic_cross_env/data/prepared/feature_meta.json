@@ -1,0 +1,236 @@
+{
+  "thresholds": {
+    "flow_duration": [
+      36.0,
+      155.0,
+      31310.0,
+      3058462.0,
+      84804667.80000009,
+      101222834.19999996
+    ],
+    "total_fwd_packets": [
+      1.0,
+      2.0,
+      5.0,
+      11.0,
+      19.0
+    ],
+    "total_bwd_packets": [
+      0.0,
+      1.0,
+      2.0,
+      4.0,
+      9.0,
+      17.0
+    ],
+    "total_length_fwd_packets": [
+      0.0,
+      12.0,
+      62.0,
+      187.0,
+      893.0,
+      1747.0
+    ],
+    "total_length_bwd_packets": [
+      0.0,
+      4.0,
+      122.0,
+      483.0,
+      11595.0,
+      11601.0
+    ],
+    "fwd_packet_length_max": [
+      0.0,
+      6.0,
+      37.0,
+      81.0,
+      439.0,
+      731.0
+    ],
+    "fwd_packet_length_mean": [
+      0.0,
+      6.0,
+      34.0,
+      50.0,
+      85.0,
+      143.25
+    ],
+    "bwd_packet_length_max": [
+      0.0,
+      2.0,
+      80.0,
+      281.0,
+      2920.0,
+      5792.0
+    ],
+    "bwd_packet_length_mean": [
+      0.0,
+      2.0,
+      73.0,
+      183.0,
+      1288.333333,
+      1932.5
+    ],
+    "flow_bytes_per_s": [
+      0.0,
+      119.442954075,
+      4615.4333320000005,
+      166666.6667,
+      1371428.571,
+      2240601.5037594
+    ],
+    "flow_packets_per_s": [
+      0.284089949,
+      3.430640006,
+      109.5513091,
+      23255.81395,
+      64516.12903,
+      666666.666666667
+    ],
+    "flow_iat_mean": [
+      25.0,
+      63.6666666667,
+      11430.66667,
+      336360.2727,
+      3755174.950670974,
+      7626451.323399998
+    ],
+    "flow_iat_max": [
+      33.0,
+      124.0,
+      30862.0,
+      2286810.0,
+      25100000.0,
+      84800000.0
+    ],
+    "fwd_iat_mean": [
+      0.0,
+      23.0,
+      186516.0,
+      7151037.260000011,
+      14300000.0
+    ],
+    "bwd_iat_mean": [
+      0.0,
+      3.0,
+      17628.6,
+      3011894.1600000053,
+      8236873.102799973
+    ],
+    "fwd_psh_flags": [
+      0.0
+    ],
+    "fwd_urg_flags": [
+      0.0
+    ],
+    "fin_flag_count": [
+      0.0
+    ],
+    "syn_flag_count": [
+      0.0
+    ],
+    "rst_flag_count": [
+      0.0
+    ],
+    "psh_flag_count": [
+      0.0,
+      1.0
+    ],
+    "ack_flag_count": [
+      0.0,
+      1.0
+    ],
+    "avg_fwd_segment_size": [
+      0.0,
+      6.0,
+      34.0,
+      50.0,
+      85.0,
+      143.25
+    ],
+    "avg_bwd_segment_size": [
+      0.0,
+      2.0,
+      73.0,
+      183.0,
+      1288.333333,
+      1932.5
+    ],
+    "init_win_bytes_forward": [
+      -1.0,
+      251.0,
+      8192.0,
+      29200.0
+    ],
+    "init_win_bytes_backward": [
+      -1.0,
+      235.0,
+      677.0,
+      14480.0
+    ]
+  },
+  "numeric_features": [
+    "flow_duration",
+    "total_fwd_packets",
+    "total_bwd_packets",
+    "total_length_fwd_packets",
+    "total_length_bwd_packets",
+    "fwd_packet_length_max",
+    "fwd_packet_length_mean",
+    "bwd_packet_length_max",
+    "bwd_packet_length_mean",
+    "flow_bytes_per_s",
+    "flow_packets_per_s",
+    "flow_iat_mean",
+    "flow_iat_max",
+    "fwd_iat_mean",
+    "bwd_iat_mean",
+    "fwd_psh_flags",
+    "fwd_urg_flags",
+    "fin_flag_count",
+    "syn_flag_count",
+    "rst_flag_count",
+    "psh_flag_count",
+    "ack_flag_count",
+    "avg_fwd_segment_size",
+    "avg_bwd_segment_size",
+    "init_win_bytes_forward",
+    "init_win_bytes_backward"
+  ],
+  "agent_attacks": {
+    "A": [
+      "ddos",
+      "dos_hulk",
+      "dos_goldeneye"
+    ],
+    "B": [
+      "dos_slowloris",
+      "dos_slowhttptest",
+      "bot"
+    ],
+    "C": [
+      "portscan",
+      "web_bruteforce",
+      "web_xss",
+      "web_sqli",
+      "infiltration"
+    ]
+  },
+  "all_attacks": [
+    "bot",
+    "ddos",
+    "dos_goldeneye",
+    "dos_hulk",
+    "dos_slowhttptest",
+    "dos_slowloris",
+    "infiltration",
+    "portscan",
+    "web_bruteforce",
+    "web_sqli",
+    "web_xss"
+  ],
+  "n_bits": 116,
+  "n_2017_train": 2253517,
+  "n_2017_test": 563380,
+  "n_2018": 15851994
+}

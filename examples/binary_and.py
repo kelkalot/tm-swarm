@@ -43,7 +43,12 @@ y_test = (X_test[:, 2] & X_test[:, 9]).astype(np.uint32)
 np.random.seed(SEED)
 
 # ── Agents ────────────────────────────────────────────────────────────────────
-sharing = SyntheticDataStrategy(n_synthetic=500, retrain_epochs=150)
+sharing = SyntheticDataStrategy(
+    n_synthetic=500,
+    retrain_epochs=150,
+    mode="perturb",
+    rate_mode="graduated",
+)
 
 node_a = TMNode(
     "agent_a", schema,
